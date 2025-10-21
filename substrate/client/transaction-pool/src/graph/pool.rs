@@ -34,7 +34,7 @@ use std::{
 	sync::Arc,
 	time::{Duration, Instant},
 };
-use tracing::{debug, instrument, trace, Level};
+use tracing::{debug, info, instrument, trace, Level};
 
 use super::{
 	base_pool as base,
@@ -451,7 +451,17 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 		let now = Instant::now();
 		trace!(target: LOG_TARGET, ?at, "Pruning tags.");
 		// Prune all transactions that provide given tags
+		let s1 = std::time::Instant::now();
+		info!(target: LOG_TARGET, ?at, "Pruning tags: start.");
 		let prune_status = self.validated_pool.prune_tags(tags);
+		info!(
+			target: LOG_TARGET,
+			?at,
+			pruned = prune_status.pruned.len(),
+			duration = ?s1.elapsed(),
+			known_imported_hashes = known_imported_hashes.clone().into_iter().count(),
+			"===4 Pruning tags: done."
+		);
 
 		// Make sure that we don't revalidate extrinsics that were part of the recently
 		// imported block. This is especially important for UTXO-like chains cause the
@@ -464,6 +474,7 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 		let pruned_transactions =
 			prune_status.pruned.into_iter().map(|tx| (tx.source.clone(), tx.data.clone()));
 
+		let s2 = std::time::Instant::now();
 		let reverified_transactions = self
 			.verify(
 				at,
@@ -472,6 +483,9 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 				ValidateTransactionPriority::Maintained,
 			)
 			.await;
+		info!(target: LOG_TARGET, ?at, reverified = reverified_transactions.len(), duration = ?s2.elapsed(), 
+			"===4 Revalidating pruned txs: done."
+		);
 
 		let pruned_hashes = reverified_transactions.keys().map(Clone::clone).collect::<Vec<_>>();
 		debug!(
