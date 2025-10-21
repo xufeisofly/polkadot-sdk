@@ -879,9 +879,6 @@ where
 		uxt: Block::Extrinsic,
 		block_hash: Block::Hash,
 	) -> TransactionValidity {
-		// Rocky: temp
-		return Ok(ValidTransaction::default());
-
 		sp_io::init_tracing();
 		use sp_tracing::{enter_span, within_span};
 
