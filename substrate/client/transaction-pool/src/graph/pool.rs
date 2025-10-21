@@ -460,6 +460,7 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 			pruned = prune_status.pruned.len(),
 			duration = ?s1.elapsed(),
 			known_imported_hashes = ?known_imported_hashes.clone().into_iter().count(),
+			first_known_imported_hash = ?known_imported_hashes.clone().into_iter().next(),
 			"===4 Pruning tags: done."
 		);
 
