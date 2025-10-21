@@ -30,7 +30,7 @@ use sp_runtime::{
 	},
 };
 use std::{
-	collections::HashMap,
+	collections::{HashMap, HashSet},
 	sync::Arc,
 	time::{Duration, Instant},
 };
@@ -473,8 +473,23 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 
 		// Try to re-validate pruned transactions since some of them might be still valid.
 		// note that `known_imported_hashes` will be rejected here due to temporary ban.
-		let pruned_transactions =
-			prune_status.pruned.into_iter().map(|tx| (tx.source.clone(), tx.data.clone()));
+		// let pruned_transactions =
+			// prune_status.pruned.into_iter().map(|tx| (tx.source.clone(), tx.data.clone()));
+
+		// Rocky: filter out known imported hashes from pruned transactions manually instead of using validate_pool.ban
+		// because validator_pool.ban_rotator is a soft cache based on TTL and capacity, it may evict some hashes before we finish revalidating pruned transactions.
+		let known_set: HashSet<_> = known_imported_hashes.clone().into_iter().collect();
+		let pruned_transactions = prune_status
+    		.pruned
+	    	.into_iter()
+	    	.filter_map(|tx| {
+        		let tx_hash = tx.hash;
+	       	 	if known_set.contains(&tx_hash) {
+    	      	  	None
+        		} else {
+            		Some((tx.source.clone(), tx.data.clone()))
+	        	}
+    		});
 
 		let s2 = std::time::Instant::now();
 		let reverified_transactions = self

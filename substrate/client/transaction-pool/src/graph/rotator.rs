@@ -31,7 +31,7 @@ use std::{
 use super::base_pool::Transaction;
 
 /// Expected size of the banned extrinsics cache.
-const DEFAULT_EXPECTED_SIZE: usize = 2048;
+const DEFAULT_EXPECTED_SIZE: usize = 8192; // Rocky: old value is 2048
 
 /// The default duration, in seconds, for which an extrinsic is banned.
 const DEFAULT_BAN_TIME_SECS: u64 = 30 * 60;
