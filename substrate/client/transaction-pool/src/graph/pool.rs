@@ -459,7 +459,7 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 			?at,
 			pruned = prune_status.pruned.len(),
 			duration = ?s1.elapsed(),
-			known_imported_hashes = known_imported_hashes.clone().into_iter().count(),
+			known_imported_hashes = ?known_imported_hashes.clone().into_iter().count(),
 			"===4 Pruning tags: done."
 		);
 
@@ -546,6 +546,12 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 		let (hash, bytes) = self.validated_pool.api().hash_and_length(&xt);
 
 		let ignore_banned = matches!(check, CheckBannedBeforeVerify::No);
+		info!(
+			target: LOG_TARGET,
+			tx_hash = ?hash,
+			is_banned = self.validated_pool.is_banned(&hash),
+			"===5 Verifying transaction."
+		);
 		if let Err(err) = self.validated_pool.check_is_known(&hash, ignore_banned) {
 			return (hash, ValidatedTransaction::Invalid(hash, err))
 		}
