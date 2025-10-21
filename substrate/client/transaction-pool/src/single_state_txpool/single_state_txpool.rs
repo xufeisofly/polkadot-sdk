@@ -60,7 +60,7 @@ use std::{
 	time::Instant,
 };
 use tokio::select;
-use tracing::{trace, warn};
+use tracing::{info, trace, warn};
 
 /// Basic implementation of transaction pool that can be customized by providing PoolApi.
 pub struct BasicPool<PoolApi, Block>
@@ -649,6 +649,7 @@ where
 	/// (that have already been enacted) and resubmits transactions that were
 	/// retracted.
 	async fn handle_enactment(&self, tree_route: TreeRoute<Block>) {
+		let start = std::time::Instant::now();
 		trace!(target: LOG_TARGET, ?tree_route, "handle_enactment tree_route.");
 		let pool = self.pool.clone();
 		let api = self.api.clone();
@@ -681,6 +682,14 @@ where
 			pool.validated_pool().on_block_retracted(retracted.hash);
 		}
 
+		info!(
+			target: LOG_TARGET, 
+			"===0 handle_enactment start, hash: {:?}, number: {:?}, next_action.revalidate: {}, resubmit: {}", 
+			hash_and_number.hash, hash_and_number.number, next_action.revalidate, next_action.resubmit,
+		);
+
+		let s1 = std::time::Instant::now();
+		info!(target: LOG_TARGET, "===1 pruning enacted txs start.");
 		future::join_all(
 			tree_route
 				.enacted()
@@ -692,6 +701,7 @@ where
 		.for_each(|enacted_log| {
 			pruned_log.extend(enacted_log);
 		});
+		info!(target: LOG_TARGET, "===1 pruning enacted txs done in {:?}.", s1.elapsed());
 
 		self.metrics
 			.report(|metrics| metrics.block_transactions_pruned.inc_by(pruned_log.len() as u64));
@@ -711,6 +721,12 @@ where
 					})
 					.unwrap_or_default()
 					.into_iter();
+
+				info!(
+					target: LOG_TARGET, 
+					"===2 retracted block: {:?}. latest: {:?}, retracted txs: {}", 
+					hash, hash_and_number.hash, block_transactions.len(),
+				);
 
 				let mut resubmitted_to_report = 0;
 
@@ -742,15 +758,27 @@ where
 				});
 			}
 
+			info!(
+				target: LOG_TARGET, 
+				"===2 resubmit at: {:?}. resubmit txs: {}", 
+				hash_and_number.hash, resubmit_transactions.len(),
+			);
+
+			let s2 = std::time::Instant::now();
 			pool.resubmit_at(
 				&hash_and_number,
 				resubmit_transactions,
 				ValidateTransactionPriority::Submitted,
 			)
 			.await;
+			info!(target: LOG_TARGET, "===2 resubmit done in {:?}.", s2.elapsed());
 		}
 
 		let extra_pool = pool.clone();
+
+
+		info!(target: LOG_TARGET, "===3 handle_enactment done in {:?}.", start.elapsed());
+
 		// After #5200 lands, this arguably might be moved to the
 		// handler of "all blocks notification".
 		self.ready_poll
@@ -823,4 +851,16 @@ where
 			}
 		}
 	}
+}
+
+
+#[macro_export]
+macro_rules! measure_time {
+    ($label:expr, $block:block) => {{
+        let start = std::time::Instant::now();
+        let result = { $block };
+        let elapsed = start.elapsed();
+        info!(target: LOG_TARGET, "measure_time: {} took {:?}", $label, elapsed);
+        result
+    }};
 }
