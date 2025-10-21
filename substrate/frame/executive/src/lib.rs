@@ -159,7 +159,7 @@ use frame_support::{
 	defensive_assert,
 	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, PostDispatchInfo},
 	migrations::MultiStepMigrator,
-	pallet_prelude::InvalidTransaction,
+	pallet_prelude::{InvalidTransaction, ValidTransaction},
 	traits::{
 		BeforeAllRuntimeMigrations, ExecuteBlock, IsInherent, OffchainWorker, OnFinalize, OnIdle,
 		OnInitialize, OnPoll, OnRuntimeUpgrade, PostInherents, PostTransactions, PreInherents,
@@ -879,6 +879,9 @@ where
 		uxt: Block::Extrinsic,
 		block_hash: Block::Hash,
 	) -> TransactionValidity {
+		// Rocky: temp
+		return Ok(ValidTransaction::default());
+
 		sp_io::init_tracing();
 		use sp_tracing::{enter_span, within_span};
 
@@ -893,18 +896,6 @@ where
 		let encoded = within_span! { sp_tracing::Level::TRACE, "using_encoded";
 			uxt.encode()
 		};
-
-		// Rocky: temp
-        {
-            use sp_runtime::transaction_validity::{ValidTransaction};
-            return Ok(ValidTransaction {
-                priority: 1,
-                longevity: 128,
-                requires: vec![],
-                provides: vec![sp_core::blake2_256(&encoded).to_vec()],
-                propagate: true,
-            });
-        }
 
 		let uxt = <Block::Extrinsic as codec::DecodeLimit>::decode_all_with_depth_limit(
 			MAX_EXTRINSIC_DEPTH,
