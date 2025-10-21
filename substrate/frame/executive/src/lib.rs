@@ -894,6 +894,18 @@ where
 			uxt.encode()
 		};
 
+		// Rocky: temp
+        {
+            use sp_runtime::transaction_validity::{ValidTransaction};
+            return Ok(ValidTransaction {
+                priority: 1,
+                longevity: 128,
+                requires: vec![],
+                provides: vec![sp_core::blake2_256(&encoded).to_vec()],
+                propagate: true,
+            });
+        }
+
 		let uxt = <Block::Extrinsic as codec::DecodeLimit>::decode_all_with_depth_limit(
 			MAX_EXTRINSIC_DEPTH,
 			&mut &encoded[..],
