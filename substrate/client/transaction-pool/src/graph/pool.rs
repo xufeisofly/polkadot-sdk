@@ -158,6 +158,8 @@ pub struct Options {
 	pub reject_future_transactions: bool,
 	/// How long the extrinsic is banned for.
 	pub ban_time: Duration,
+
+	pub ban_expected_size: usize,
 }
 
 impl Default for Options {
@@ -167,6 +169,7 @@ impl Default for Options {
 			future: base::Limit { count: 512, total_bytes: 1 * 1024 * 1024 },
 			reject_future_transactions: false,
 			ban_time: Duration::from_secs(60 * 30),
+			ban_expected_size: 8192,
 		}
 	}
 }

@@ -204,7 +204,8 @@ impl<B: ChainApi, L: EventHandler<B>> ValidatedPool<B, L> {
 		api: Arc<B>,
 	) -> Self {
 		let ban_time = options.ban_time;
-		Self::new_with_rotator(options, is_validator, api, PoolRotator::new(ban_time), None)
+		let ban_expected_size = options.ban_expected_size;
+		Self::new_with_rotator(options, is_validator, api, PoolRotator::new_with_expected_size(ban_time, ban_expected_size), None)
 	}
 
 	/// Create a new transaction pool.
