@@ -377,8 +377,8 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 				// if it's not found in the pool query the runtime at parent block
 				// to get validity info and tags that the extrinsic provides.
 				None => {
-					return; // Rocky: debugging
 					// Avoid validating block txs if the pool is empty
+					// TODO: InBlock 的 txs 已经被共识验证过了，即使 pool 里没有 tx，也没必要再验证一遍
 					if !self.validated_pool.status().is_empty() {
 						validated_counter = validated_counter + 1;
 						let validity = self
