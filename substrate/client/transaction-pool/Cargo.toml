@@ -65,3 +65,6 @@ tracing-subscriber = { workspace = true }
 txtesttool = { workspace = true }
 zombienet-configuration = { workspace = true }
 zombienet-sdk = { workspace = true }
+
+[features]
+no_propagate = []
