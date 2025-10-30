@@ -234,7 +234,7 @@ where
 }
 
 /// Store last pruned tags for given number of invocations.
-const RECENTLY_PRUNED_TAGS: usize = 5; // Rocky: old value is 2;
+const RECENTLY_PRUNED_TAGS: usize = 2; // Rocky: old value is 2;
 
 /// Transaction pool.
 ///

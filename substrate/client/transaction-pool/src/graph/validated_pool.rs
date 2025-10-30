@@ -517,7 +517,7 @@ impl<B: ChainApi, L: EventHandler<B>> ValidatedPool<B, L> {
 				// note we are not considering tx with hash invalid here - we just want
 				// to remove it along with dependent transactions and `remove_subtree()`
 				// does exactly what we need
-				trace!(target: LOG_TARGET, ?hash, "Resubmitting transaction");
+				trace!(target: LOG_TARGET, ?hash, "Resubmitting transaction, remove subtree");
 				let removed = pool.remove_subtree(&[hash]);
 				for removed_tx in removed {
 					let removed_hash = removed_tx.hash;
