@@ -80,9 +80,9 @@ impl<Hash, Ex, Error> ValidatedTransaction<Hash, Ex, Error> {
 			requires: validity.requires,
 			provides: validity.provides,
 
-			#[cfg(not(feature = "no_propagate"))]
+			#[cfg(not(feature = "no-propagate"))]
 			propagate: validity.propagate,
-			#[cfg(feature = "no_propagate")]
+			#[cfg(feature = "no-propagate")]
 			propagate: false,
 
 			valid_till: at.saturated_into::<u64>().saturating_add(validity.longevity),

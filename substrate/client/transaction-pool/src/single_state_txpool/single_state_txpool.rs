@@ -447,7 +447,12 @@ where
 			is_validator,
 			pool_api,
 			prometheus,
+			
+			#[cfg(not(feature = "light-revalidation"))]
 			RevalidationType::Full,
+			#[cfg(feature = "light-revalidation")]
+			RevalidationType::Light,
+
 			spawner,
 			client.usage_info().chain.best_number,
 			client.usage_info().chain.best_hash,

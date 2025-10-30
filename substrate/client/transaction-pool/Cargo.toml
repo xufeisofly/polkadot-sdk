@@ -67,4 +67,5 @@ zombienet-configuration = { workspace = true }
 zombienet-sdk = { workspace = true }
 
 [features]
-no_propagate = []
+no-propagate = []
+light-revalidation = []
