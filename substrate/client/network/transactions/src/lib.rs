@@ -453,6 +453,7 @@ where
 
 	/// Propagate one transaction.
 	pub fn propagate_transaction(&mut self, hash: &H) {
+		return;
 		// Accept transactions only when node is not major syncing
 		if self.sync.is_major_syncing() {
 			return
