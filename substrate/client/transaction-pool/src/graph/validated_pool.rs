@@ -79,7 +79,7 @@ impl<Hash, Ex, Error> ValidatedTransaction<Hash, Ex, Error> {
 			priority: validity.priority,
 			requires: validity.requires,
 			provides: validity.provides,
-			propagate: false, // Rocky: validity.propagate,
+			propagate: validity.propagate,
 			valid_till: at.saturated_into::<u64>().saturating_add(validity.longevity),
 		})
 	}
