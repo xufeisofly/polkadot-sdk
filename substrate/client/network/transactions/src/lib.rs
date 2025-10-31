@@ -78,7 +78,7 @@ mod rep {
 	/// Reputation change when a peer sends us any transaction that is not invalid.
 	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
 	/// Reputation change when a peer sends us an transaction that is temporarily banned.
-	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(0, "Temp banned transaction");
+	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(1 << 4, "Temp banned transaction");
 	/// Reputation change when a peer sends us a good transaction.
 	pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
 	/// Reputation change when a peer sends us a bad transaction.
