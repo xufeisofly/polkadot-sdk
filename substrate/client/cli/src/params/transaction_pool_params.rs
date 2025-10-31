@@ -70,6 +70,7 @@ impl TransactionPoolParams {
 			self.tx_ban_seconds,
 			self.pool_type.into(),
 			None,
+			10,
 			is_dev,
 		)
 	}

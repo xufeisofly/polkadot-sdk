@@ -61,6 +61,7 @@ impl TransactionPoolOptions {
 		tx_ban_seconds: Option<u64>,
 		txpool_type: TransactionPoolType,
 		ban_expected_size: Option<usize>,
+		factor: usize,
 		is_dev: bool,
 	) -> TransactionPoolOptions {
 		let mut options = Options::default();
@@ -70,7 +71,6 @@ impl TransactionPoolOptions {
 		options.ready.total_bytes = pool_bytes;
 
 		// future queue
-		let factor = 10;
 		options.future.count = pool_limit / factor;
 		options.future.total_bytes = pool_bytes / factor;
 

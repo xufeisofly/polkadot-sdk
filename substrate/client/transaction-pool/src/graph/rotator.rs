@@ -29,6 +29,7 @@ use std::{
 };
 
 use super::base_pool::Transaction;
+use indexmap::IndexMap;
 
 /// Expected size of the banned extrinsics cache.
 const DEFAULT_EXPECTED_SIZE: usize = 8192; // Rocky: old value is 2048
@@ -44,7 +45,7 @@ pub struct PoolRotator<Hash> {
 	/// How long the extrinsic is banned for.
 	ban_time: Duration,
 	/// Currently banned extrinsics.
-	banned_until: RwLock<HashMap<Hash, Instant>>,
+	banned_until: RwLock<IndexMap<Hash, Instant>>, // Rocky: old is RwLock<HashMap<Hash, Instant>>,
 	/// Expected size of the banned extrinsics cache.
 	expected_size: usize,
 }
@@ -94,11 +95,16 @@ impl<Hash: hash::Hash + Eq + Clone> PoolRotator<Hash> {
 		}
 
 		if banned.len() > 2 * self.expected_size {
-			while banned.len() > self.expected_size {
-				if let Some(key) = banned.keys().next().cloned() {
-					banned.remove(&key);
-				}
-			}
+			let to_remove = banned.len() - self.expected_size;
+        	for _ in 0..to_remove {
+            	banned.shift_remove_index(0);  // delete the oldest entry
+        	}
+			// TODO: 并不是 FIFO 删除，HashMap 是随机的，可能会删除比较新的 entry
+			// while banned.len() > self.expected_size {
+			// 	if let Some(key) = banned.keys().next().cloned() {
+			// 		banned.remove(&key);
+			// 	}
+			// }
 		}
 	}
 
