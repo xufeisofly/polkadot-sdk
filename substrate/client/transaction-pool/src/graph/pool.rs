@@ -39,6 +39,7 @@ use tracing::{debug, info, instrument, trace, Level};
 use super::{
 	base_pool as base,
 	validated_pool::{IsValidator, ValidatedPool, ValidatedTransaction},
+	rotator::BannedReason,
 	EventHandler, ValidatedPoolSubmitOutcome,
 };
 
@@ -461,7 +462,7 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 		// imported block. This is especially important for UTXO-like chains cause the
 		// inputs are pruned so such transaction would go to future again.
 		self.validated_pool
-			.ban(&Instant::now(), known_imported_hashes.clone().into_iter());
+			.ban(&Instant::now(), known_imported_hashes.clone().into_iter(), BannedReason::PrunedInBlock);
 
 		// Try to re-validate pruned transactions since some of them might be still valid.
 		// note that `known_imported_hashes` will be rejected here due to temporary ban.
@@ -718,7 +719,7 @@ mod tests {
 		});
 
 		// when
-		pool.validated_pool.ban(&Instant::now(), vec![pool.hash_of(&uxt)]);
+		pool.validated_pool.ban(&Instant::now(), vec![pool.hash_of(&uxt)], BannedReason::Unknown);
 		let res = block_on(pool.submit_one(&api.expect_hash_and_number(0), SOURCE, uxt.into()))
 			.map(|o| o.hash());
 		assert_eq!(pool.validated_pool().status().ready, 0);
