@@ -105,6 +105,11 @@ impl<Hash: hash::Hash + Eq + Clone> PoolRotator<Hash> {
 		let mut banned = self.banned_until.write();
 
 		for hash in hashes {
+			if let Some((_, existing_reason)) = banned.get(&hash) {
+				if *existing_reason == BannedReason::PrunedInBlock {
+					continue;
+				}
+			}
 			banned.insert(hash, (*now + self.ban_time, reason));
 		}
 
