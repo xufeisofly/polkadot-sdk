@@ -295,7 +295,7 @@ impl<B: ChainApi, L: EventHandler<B>> ValidatedPool<B, L> {
 		ignore_banned: bool,
 	) -> Result<(), B::Error> {
 		if self.is_banned_by_reason(tx_hash, BannedReason::PrunedInBlock) {
-			Err(error::Error::AlreadyImported(Box::new(*tx_hash)).into())
+			Err(error::Error::RecentlyPruned(Box::new(*tx_hash)).into())
 		} else if !ignore_banned && self.is_banned(tx_hash) {
 			Err(error::Error::TemporarilyBanned.into())
 		} else if self.pool.read().is_imported(tx_hash) {

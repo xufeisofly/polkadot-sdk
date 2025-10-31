@@ -45,6 +45,8 @@ pub enum TransactionImport {
 	KnownGood,
 	/// Transaction is good and not yet known.
 	NewGood,
+	/// Transaction is temporarily banned.
+	TemporarilyBanned,
 	/// Transaction is invalid.
 	Bad,
 	/// Transaction import was not performed.

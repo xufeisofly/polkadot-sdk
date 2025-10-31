@@ -66,6 +66,10 @@ impl<Hash> From<Error> for TransactionEvent<Hash> {
 				TransactionEvent::Invalid(TransactionError {
 					error: "Transaction is already imported".into(),
 				}),
+			Error::Pool(PoolError::RecentlyPruned(_)) =>
+				TransactionEvent::Invalid(TransactionError {
+					error: "Transaction is recently pruned in block".into(),
+				}),
 			Error::Pool(PoolError::TooLowPriority { old, new }) =>
 				TransactionEvent::Invalid(TransactionError {
 					error: format!(
