@@ -74,15 +74,25 @@ mod rep {
 	///
 	/// This forces node to verify it, thus the negative value here. Once transaction is verified,
 	/// reputation change should be refunded with `ANY_TRANSACTION_REFUND`
-	pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// /// Reputation change when a peer sends us any transaction that is not invalid.
+	// pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
+	// /// Reputation change when a peer sends us an transaction that is temporarily banned.
+	// pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(1 << 4, "Temp banned transaction");
+	// /// Reputation change when a peer sends us a good transaction.
+	// pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	// /// Reputation change when a peer sends us a bad transaction.
+	// pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+
+	pub const ANY_TRANSACTION: Rep = Rep::new(0, "Any transaction");
 	/// Reputation change when a peer sends us any transaction that is not invalid.
-	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
+	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(0, "Any transaction (refund)");
 	/// Reputation change when a peer sends us an transaction that is temporarily banned.
-	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(1 << 4, "Temp banned transaction");
+	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(0, "Temp banned transaction");
 	/// Reputation change when a peer sends us a good transaction.
-	pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	pub const GOOD_TRANSACTION: Rep = Rep::new(0, "Good transaction");
 	/// Reputation change when a peer sends us a bad transaction.
-	pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+	pub const BAD_TRANSACTION: Rep = Rep::new(0, "Bad transaction");	
 }
 
 struct Metrics {
