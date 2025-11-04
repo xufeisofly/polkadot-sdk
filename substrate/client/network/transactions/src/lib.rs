@@ -392,12 +392,15 @@ where
 			SyncEvent::PeerConnected(remote) => {
 				let addr = iter::once(multiaddr::Protocol::P2p(remote.into()))
 					.collect::<multiaddr::Multiaddr>();
+
 				let result = self.network.add_peers_to_reserved_set(
 					self.protocol_name.clone(),
 					iter::once(addr).collect(),
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Add reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Add reserved peer success: {:?}", remote);
 				}
 			},
 			SyncEvent::PeerDisconnected(remote) => {
@@ -407,6 +410,8 @@ where
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Remove reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Remove reserved peer success: {:?}", remote);
 				}
 			},
 		}
