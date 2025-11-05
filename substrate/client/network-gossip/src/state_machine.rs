@@ -546,27 +546,6 @@ impl<B: BlockT> ConsensusGossip<B> {
 		);
 	}
 
-	pub async fn multicast_async(
-		&mut self,
-		notification_service: &mut Box<dyn NotificationService>,
-		topic: B::Hash,
-		message: Vec<u8>,
-		force: bool,
-	) {
-		let message_hash = HashingFor::<B>::hash(&message);
-		self.register_message_hashed(message_hash, topic, message.clone(), None);
-		let intent = if force { MessageIntent::ForcedBroadcast } else { MessageIntent::Broadcast };
-		propagate_async(
-			notification_service,
-			self.protocol.clone(),
-			iter::once((&message_hash, &topic, &message)),
-			intent,
-			&mut self.peers,
-			&self.validator,
-		)
-		.await;
-	}
-
 	/// Send addressed message to a peer. The message is not kept or multicast
 	/// later on.
 	pub fn send_message(

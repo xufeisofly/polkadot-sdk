@@ -163,17 +163,6 @@ impl<B: BlockT> GossipEngine<B> {
 			.multicast(&mut self.notification_service, topic, message, force)
 	}
 
-	pub async fn gossip_message_async(
-		&mut self,
-		topic: B::Hash,
-		message: Vec<u8>,
-		force: bool,
-	) {
-		self.state_machine
-			.multicast_async(&mut self.notification_service, topic, message, force)
-			.await
-	}
-
 	/// Send addressed message to the given peers. The message is not kept or multicast
 	/// later on.
 	pub fn send_message(&mut self, who: Vec<PeerId>, data: Vec<u8>) {
