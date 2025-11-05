@@ -163,6 +163,17 @@ impl<B: BlockT> GossipEngine<B> {
 			.multicast(&mut self.notification_service, topic, message, force)
 	}
 
+	pub async fn gossip_message_async(
+		&mut self,
+		topic: B::Hash,
+		message: Vec<u8>,
+		force: bool,
+	) {
+		self.state_machine
+			.multicast_async(&mut self.notification_service, topic, message, force)
+			.await
+	}
+
 	/// Send addressed message to the given peers. The message is not kept or multicast
 	/// later on.
 	pub fn send_message(&mut self, who: Vec<PeerId>, data: Vec<u8>) {
@@ -170,6 +181,19 @@ impl<B: BlockT> GossipEngine<B> {
 			self.state_machine
 				.send_message(&mut self.notification_service, who, data.clone());
 		}
+	}
+
+	pub async fn send_message_async(
+		&mut self,
+		who: Vec<PeerId>,
+		data: Vec<u8>,
+	) -> Result<(), sc_network::error::Error> {
+		for who in &who {
+			self.state_machine
+				.send_message_async(&mut self.notification_service, who, data.clone())
+				.await?;
+		}
+		Ok(())
 	}
 
 	/// Notify everyone we're connected to that we have the given block.
