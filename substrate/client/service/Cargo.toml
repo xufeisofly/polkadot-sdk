@@ -88,4 +88,3 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 ]
 txpool-propagate-disable = []
-txpool-timeout-propagate-disable = ["sc-network-transactions/txpool-timeout-propagate-disable"]

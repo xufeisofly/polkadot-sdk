@@ -308,7 +308,6 @@ where
 		loop {
 			futures::select! {
 				_ = self.propagate_timeout.next() => {
-					#[cfg(not(feature = "txpool-timeout-propagate-disable"))]
 					self.propagate_transactions();
 				},
 				(tx_hash, result) = self.pending_transactions.select_next_some() => {
