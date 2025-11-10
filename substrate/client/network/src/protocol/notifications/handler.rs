@@ -454,13 +454,6 @@ impl NotificationsSink {
 			let message = message.into();
 			let result = tx.try_send(NotificationsSinkMessage::Notification { message });
 
-			log::trace!(
-				target: LOG_TARGET,
-				"===1 NotificationsSink: sent sync notification to peer {:?}, result: {:?}.",
-				self.inner.peer_id,
-				result,
-			);
-
 			if result.is_err() {
 				log::error!(
 					target: LOG_TARGET,

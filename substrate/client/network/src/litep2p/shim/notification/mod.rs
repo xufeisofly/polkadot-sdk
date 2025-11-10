@@ -209,6 +209,14 @@ impl NotificationService for NotificationProtocol {
 	fn send_sync_notification(&mut self, peer: &PeerId, notification: Vec<u8>) {
 		let size = notification.len();
 
+		log::trace!(
+			target: LOG_TARGET,
+			"===1 {}: sending sync notification to {:?}, size={}",
+			self.protocol,
+			peer,
+			size,
+		);
+
 		if let Ok(_) = self.handle.send_sync_notification(peer.into(), notification) {
 			self.metrics.register_notification_sent(&self.protocol, size);
 		}
