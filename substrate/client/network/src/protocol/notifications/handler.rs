@@ -827,6 +827,15 @@ impl ConnectionHandler for NotifsHandler {
 						},
 					};
 
+					log::trace!(
+						target: LOG_TARGET,
+						"===1 Notifications handler sending notification to peer {:?} \
+						on protocol {}, size={}",
+						self.peer_id,
+						protocol_index,
+						message.len(),
+					);
+
 					let _ = out_substream.start_send_unpin(message);
 					// Note that flushing is performed later down this function.
 				}
