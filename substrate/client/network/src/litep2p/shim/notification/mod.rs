@@ -82,6 +82,14 @@ impl MessageSink for Litep2pMessageSink {
 	fn send_sync_notification(&self, notification: Vec<u8>) {
 		let size = notification.len();
 
+		log::trace!(
+			target: LOG_TARGET,
+			"===2 {}: sending sync notification to {:?}, size={}",
+			self.protocol,
+			self.peer,
+			size,
+		);
+
 		match self.sink.send_sync_notification(notification) {
 			Ok(_) => self.metrics.register_notification_sent(&self.protocol, size),
 			Err(error) => log::trace!(
