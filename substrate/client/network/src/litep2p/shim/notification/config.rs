@@ -35,6 +35,11 @@ use sc_utils::mpsc::TracingUnboundedSender;
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
+pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 128; // Rocky: old value is 8;
+
+/// Number of pending notifications in synchronous contexts.
+const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8192; // Rocky: old value is 2048;
+
 /// Handle for controlling the notification protocol.
 #[derive(Debug, Clone)]
 pub struct ProtocolControlHandle {
@@ -109,8 +114,8 @@ impl NotificationProtocolConfig {
 			.with_max_size(max_notification_size as usize)
 			.with_auto_accept_inbound(true)
 			.with_fallback_names(fallback_names.into_iter().map(From::from).collect())
-			.with_sync_channel_size(8192)
-			.with_async_channel_size(128)
+			.with_sync_channel_size(SYNC_NOTIFICATIONS_BUFFER_SIZE)
+			.with_async_channel_size(ASYNC_NOTIFICATIONS_BUFFER_SIZE)
 			.build();
 
 		// initialize the actual object implementing `NotificationService` and combine the

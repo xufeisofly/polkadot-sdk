@@ -96,10 +96,10 @@ const LOG_TARGET: &str = "sub-libp2p::notification::handler";
 
 /// Number of pending notifications in asynchronous contexts.
 /// See [`NotificationsSink::reserve_notification`] for context.
-pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 128; // Rocky: old value is 8;
+pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8; // Rocky: useless
 
 /// Number of pending notifications in synchronous contexts.
-const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8192; // Rocky: old value is 2048;
+const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 2048; // Rocky: useless
 
 /// Maximum duration to open a substream and receive the handshake message. After that, we
 /// consider that we failed to open the substream.
