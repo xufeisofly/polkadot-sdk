@@ -1798,7 +1798,13 @@ where
 		{
 			BlockStatus::InChainWithState | BlockStatus::Queued => {},
 			BlockStatus::Unknown if allow_missing_parent => {},
-			BlockStatus::Unknown => return Ok(ImportResult::UnknownParent),
+			BlockStatus::Unknown => {
+				warn!(
+					"===2 Parent block {:?} of block {:?} is missing",
+					parent_hash,
+					hash
+				);
+			}, // Rocky: return Ok(ImportResult::UnknownParent),
 			BlockStatus::InChainPruned if allow_missing_state => {},
 			BlockStatus::InChainPruned => return Ok(ImportResult::MissingState),
 			BlockStatus::KnownBad => return Ok(ImportResult::KnownBad),
