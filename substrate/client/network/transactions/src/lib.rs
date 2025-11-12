@@ -74,13 +74,25 @@ mod rep {
 	///
 	/// This forces node to verify it, thus the negative value here. Once transaction is verified,
 	/// reputation change should be refunded with `ANY_TRANSACTION_REFUND`
-	pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// /// Reputation change when a peer sends us any transaction that is not invalid.
+	// pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
+	// /// Reputation change when a peer sends us an transaction that is temporarily banned.
+	// pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(1 << 4, "Temp banned transaction");
+	// /// Reputation change when a peer sends us a good transaction.
+	// pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	// /// Reputation change when a peer sends us a bad transaction.
+	// pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+
+	pub const ANY_TRANSACTION: Rep = Rep::new(0, "Any transaction");
 	/// Reputation change when a peer sends us any transaction that is not invalid.
-	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
-	/// Reputation change when a peer sends us an transaction that we didn't know about.
-	pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(0, "Any transaction (refund)");
+	/// Reputation change when a peer sends us an transaction that is temporarily banned.
+	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(0, "Temp banned transaction");
+	/// Reputation change when a peer sends us a good transaction.
+	pub const GOOD_TRANSACTION: Rep = Rep::new(0, "Good transaction");
 	/// Reputation change when a peer sends us a bad transaction.
-	pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+	pub const BAD_TRANSACTION: Rep = Rep::new(0, "Bad transaction");	
 }
 
 struct Metrics {
@@ -380,12 +392,15 @@ where
 			SyncEvent::PeerConnected(remote) => {
 				let addr = iter::once(multiaddr::Protocol::P2p(remote.into()))
 					.collect::<multiaddr::Multiaddr>();
+
 				let result = self.network.add_peers_to_reserved_set(
 					self.protocol_name.clone(),
 					iter::once(addr).collect(),
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Add reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Add reserved peer success: {:?}", remote);
 				}
 			},
 			SyncEvent::PeerDisconnected(remote) => {
@@ -395,6 +410,8 @@ where
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Remove reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Remove reserved peer success: {:?}", remote);
 				}
 			},
 		}
@@ -447,6 +464,8 @@ where
 				self.network.report_peer(who, rep::ANY_TRANSACTION_REFUND),
 			TransactionImport::NewGood => self.network.report_peer(who, rep::GOOD_TRANSACTION),
 			TransactionImport::Bad => self.network.report_peer(who, rep::BAD_TRANSACTION),
+			TransactionImport::TemporarilyBanned =>
+				self.network.report_peer(who, rep::TEMP_BANNED_TRANSACTION),
 			TransactionImport::None => {},
 		}
 	}

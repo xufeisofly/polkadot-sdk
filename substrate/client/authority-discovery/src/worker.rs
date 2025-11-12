@@ -390,7 +390,7 @@ where
 				},
 				// Handle messages from [`Service`]. Ignore if sender side is closed.
 				msg = self.from_service.select_next_some() => {
-					self.process_message_from_service(msg);
+					self.process_message_from_service(msg).await;
 				},
 				// Publish own addresses.
 				only_if_changed = future::select(
@@ -417,7 +417,7 @@ where
 		}
 	}
 
-	fn process_message_from_service(&self, msg: ServicetoWorkerMsg) {
+	async fn process_message_from_service(&mut self, msg: ServicetoWorkerMsg) {
 		match msg {
 			ServicetoWorkerMsg::GetAddressesByAuthorityId(authority, sender) => {
 				let _ = sender.send(
@@ -427,6 +427,10 @@ where
 			ServicetoWorkerMsg::GetAuthorityIdsByPeerId(peer_id, sender) => {
 				let _ = sender
 					.send(self.addr_cache.get_authority_ids_by_peer_id(&peer_id).map(Clone::clone));
+			},
+			ServicetoWorkerMsg::PublishExtAddresses(only_if_change, sender) => {
+				let res = self.publish_ext_addresses(only_if_change).await;
+				let _ = sender.send(res.is_ok());
 			},
 		}
 	}
@@ -440,7 +444,7 @@ where
 			address.iter().all(|protocol| match protocol {
 				// The `ip_network` library is used because its `is_global()` method is stable,
 				// while `is_global()` in the standard library currently isn't.
-				multiaddr::Protocol::Ip4(ip) => IpNetwork::from(ip).is_global(),
+				// multiaddr::Protocol::Ip4(ip) => IpNetwork::from(ip).is_global(),
 				multiaddr::Protocol::Ip6(ip) => IpNetwork::from(ip).is_global(),
 				_ => true,
 			})

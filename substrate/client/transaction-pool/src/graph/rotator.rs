@@ -31,7 +31,7 @@ use std::{
 use super::base_pool::Transaction;
 
 /// Expected size of the banned extrinsics cache.
-const DEFAULT_EXPECTED_SIZE: usize = 2048;
+const DEFAULT_EXPECTED_SIZE: usize = 8192; // Rocky: old value is 2048
 
 /// The default duration, in seconds, for which an extrinsic is banned.
 const DEFAULT_BAN_TIME_SECS: u64 = 30 * 60;
@@ -44,9 +44,16 @@ pub struct PoolRotator<Hash> {
 	/// How long the extrinsic is banned for.
 	ban_time: Duration,
 	/// Currently banned extrinsics.
-	banned_until: RwLock<HashMap<Hash, Instant>>,
+	banned_until: RwLock<HashMap<Hash, (Instant, BannedReason)>>,
 	/// Expected size of the banned extrinsics cache.
 	expected_size: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BannedReason {
+	PrunedInBlock,
+	Stale,
+	Unknown,
 }
 
 impl<Hash: Clone> Clone for PoolRotator<Hash> {
@@ -85,12 +92,25 @@ impl<Hash: hash::Hash + Eq + Clone> PoolRotator<Hash> {
 		self.banned_until.read().contains_key(hash)
 	}
 
+	pub fn is_banned_by_reason(&self, hash: &Hash, reason: BannedReason) -> bool {
+		if let Some((_, r)) = self.banned_until.read().get(hash) {
+			*r == reason
+		} else {
+			false
+		}
+	}
+
 	/// Bans given set of hashes.
-	pub fn ban(&self, now: &Instant, hashes: impl IntoIterator<Item = Hash>) {
+	pub fn ban(&self, now: &Instant, hashes: impl IntoIterator<Item = Hash>, reason: BannedReason) {
 		let mut banned = self.banned_until.write();
 
 		for hash in hashes {
-			banned.insert(hash, *now + self.ban_time);
+			if let Some((_, existing_reason)) = banned.get(&hash) {
+				if *existing_reason == BannedReason::PrunedInBlock {
+					continue;
+				}
+			}
+			banned.insert(hash, (*now + self.ban_time, reason));
 		}
 
 		if banned.len() > 2 * self.expected_size {
@@ -115,7 +135,7 @@ impl<Hash: hash::Hash + Eq + Clone> PoolRotator<Hash> {
 			return false
 		}
 
-		self.ban(now, iter::once(xt.hash.clone()));
+		self.ban(now, iter::once(xt.hash.clone()), BannedReason::Stale);
 		true
 	}
 
@@ -123,7 +143,7 @@ impl<Hash: hash::Hash + Eq + Clone> PoolRotator<Hash> {
 	pub fn clear_timeouts(&self, now: &Instant) {
 		let mut banned = self.banned_until.write();
 
-		banned.retain(|_, &mut v| v >= *now);
+		banned.retain(|_, &mut v| v.0 >= *now);
 	}
 }
 
