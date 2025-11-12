@@ -897,9 +897,17 @@ where
 			return Ok(())
 		}
 
+		let parent_hash = *self
+			.backend
+			.blockchain()
+			.header(hash)?
+			.ok_or(Error::MissingHeader(format!("{hash:?}")))?
+			.parent_hash();
 		// Find tree route from last finalized to given block.
 		let route_from_finalized =
-			sp_blockchain::tree_route(self.backend.blockchain(), info.finalized_hash, hash)?;
+			sp_blockchain::tree_route(self.backend.blockchain(), parent_hash, hash)?;
+		// let route_from_finalized =
+		// 	sp_blockchain::tree_route(self.backend.blockchain(), info.finalized_hash, hash)?;
 
 		if let Some(retracted) = route_from_finalized.retracted().get(0) {
 			warn!(
