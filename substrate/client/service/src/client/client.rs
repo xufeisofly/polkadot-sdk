@@ -812,11 +812,20 @@ where
 				StateAction::ApplyChanges(sc_consensus::StorageChanges::Changes(_)),
 			) => return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),
 			(_, StateAction::ApplyChanges(changes)) => (true, Some(changes)),
-			(BlockStatus::Unknown, _) => {
+			(BlockStatus::Unknown, StateAction::Skip) if import_block.allow_missing_parent => {
 				warn!(
-					"===2.2 Parent block {:?} is unknown, cannot import child block {:?}.",
+					"===3.2 Parent block {:?} is unknown but allowed, importing child block {:?} without enacting state.",
 					parent_hash,
 					import_block.header.hash(),
+				);
+				(false, None)
+			},
+			(BlockStatus::Unknown, _action) => {
+				warn!(
+					"===2.2 Parent block {:?} is unknown, cannot import child block {:?}. action: {:?}",
+					parent_hash,
+					import_block.header.hash(),
+					_action,
 				);
 				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent));
 			},
@@ -1804,13 +1813,7 @@ where
 		{
 			BlockStatus::InChainWithState | BlockStatus::Queued => {},
 			BlockStatus::Unknown if allow_missing_parent => {},
-			BlockStatus::Unknown => {
-				warn!(
-					"===2.1 Parent block {:?} of block {:?} is missing",
-					parent_hash,
-					hash
-				);
-			}, // Rocky: return Ok(ImportResult::UnknownParent),
+			BlockStatus::Unknown => return Ok(ImportResult::UnknownParent),
 			BlockStatus::InChainPruned if allow_missing_state => {},
 			BlockStatus::InChainPruned => return Ok(ImportResult::MissingState),
 			BlockStatus::KnownBad => return Ok(ImportResult::KnownBad),
