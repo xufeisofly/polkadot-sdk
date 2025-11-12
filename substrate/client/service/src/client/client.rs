@@ -943,9 +943,22 @@ where
 			.number(hash)?
 			.ok_or(Error::MissingHeader(format!("{hash:?}")))?;
 		if self.backend.blockchain().leaves()?.len() > 1 || info.best_number < block_number {
+			warn!(
+				"===4.2.1  {}:{:?} to {}:{:?}",
+				info.best_number,
+				info.best_hash,
+				block_number,
+				hash,
+			);
 			let route_from_best =
 				sp_blockchain::tree_route(self.backend.blockchain(), info.best_hash, hash)?;
-
+			warn!(
+				"===4.2.2  {}:{:?} to {}:{:?}",
+				info.best_number,
+				info.best_hash,
+				block_number,
+				hash,
+			);
 			// If the block is not a direct ancestor of the current best chain,
 			// then some other block is the common ancestor.
 			if route_from_best.common_block().hash != hash {
