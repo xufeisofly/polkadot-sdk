@@ -813,20 +813,10 @@ where
 			) => return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),
 			(_, StateAction::ApplyChanges(changes)) => (true, Some(changes)),
 			(BlockStatus::Unknown, StateAction::Skip) if import_block.allow_missing_parent => {
-				warn!(
-					"===3.2 Parent block {:?} is unknown but allowed, importing child block {:?} without enacting state.",
-					parent_hash,
-					import_block.header.hash(),
-				);
+				// Rocky: for PC-BFT warp proof syncing situation, the synced block don't need a parent to be known.
 				(false, None)
 			},
-			(BlockStatus::Unknown, _action) => {
-				warn!(
-					"===2.2 Parent block {:?} is unknown, cannot import child block {:?}. action: {:?}",
-					parent_hash,
-					import_block.header.hash(),
-					_action,
-				);
+			(BlockStatus::Unknown, _) => {
 				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent));
 			},
 			(_, StateAction::Skip) => (false, None),
@@ -921,22 +911,9 @@ where
 			.number(hash)?
 			.ok_or(Error::MissingHeader(format!("{hash:?}")))?;
 		if self.backend.blockchain().leaves()?.len() > 1 || info.best_number < block_number {
-			warn!(
-				"===4.2.1  {}:{:?} to {}:{:?}",
-				info.best_number,
-				info.best_hash,
-				block_number,
-				hash,
-			);
 			let route_from_best =
 				sp_blockchain::tree_route(self.backend.blockchain(), info.best_hash, hash)?;
-			warn!(
-				"===4.2.2  {}:{:?} to {}:{:?}",
-				info.best_number,
-				info.best_hash,
-				block_number,
-				hash,
-			);
+
 			// If the block is not a direct ancestor of the current best chain,
 			// then some other block is the common ancestor.
 			if route_from_best.common_block().hash != hash {
@@ -950,20 +927,14 @@ where
 			}
 		}
 
-		warn!("===4.3 Route from finalized");		
-
 		let enacted = route_from_finalized.enacted();
 		assert!(enacted.len() > 0);
 		for finalize_new in &enacted[..enacted.len() - 1] {
 			operation.op.mark_finalized(finalize_new.hash, None)?;
 		}
 
-		warn!("===4.4 Route from finalized");
-
 		assert_eq!(enacted.last().map(|e| e.hash), Some(hash));
 		operation.op.mark_finalized(hash, justification)?;
-
-		warn!("===4.5 Route from finalized");
 
 		if notify {
 			let finalized =
@@ -977,7 +948,6 @@ where
 				)
 				.number;
 
-			warn!("===4.6 Route from finalized");
 			// The stale heads are the leaves that will be displaced after the
 			// block is finalized.
 			let stale_heads = self
@@ -996,11 +966,12 @@ where
 			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_heads });
 		}
 
-		warn!("===4.7 Route from finalized");
-
 		Ok(())
 	}
 
+	/// Rocky: Apply finality for a block hash without checking for ancestors
+	/// For now this is only used for finalizing the block synced by warp mode of PC-BFT
+	/// as parents are not needed to be finalized in that case.
 	fn apply_finality_with_block_hash_no_recursive(
 		&self,
 		operation: &mut ClientImportOperation<Block, B>,
@@ -1027,12 +998,10 @@ where
 			operation.op.mark_head(hash)?;
 		}
 
-		warn!("===5.3 Route from finalized");		
 		operation.op.mark_finalized(hash, None)?;
 
 		if notify {
 			let finalized = vec![hash];
-			warn!("===5.6 Route from finalized");
 			// The stale heads are the leaves that will be displaced after the
 			// block is finalized.
 			let stale_heads = self
@@ -1050,8 +1019,6 @@ where
 
 			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_heads });
 		}
-
-		warn!("===5.7 Route from finalized");
 
 		Ok(())
 	}
