@@ -1723,9 +1723,12 @@ where
 		if let Some(BlockGap { start, end, .. }) = info.block_gap {
 			#[cfg(feature = "bft-warp")]
 			{
+				// Rocky: In BFT warp sync mode, we may have a warp target set.
+				// If the gap is before the warp target, we can ignore it.
+				// We don't use finalized_number here, as there might be a delay of warp target finalization.
 				let warp_target_number = self.warp_target.map(|(_, n)| n).unwrap_or_default();
 				if end <= warp_target_number { // Rocky: ignore gaps before finalized, mainly for warp sync case
-					debug!(target: LOG_TARGET, "#===# Ignoring gap before finalized number {}, gap_end: {}", info.finalized_number, end);
+					debug!(target: LOG_TARGET, "#===# Ignoring gap before warp block number {}, gap_end: {}", info.finalized_number, end);
 				} else {
 					let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
 					debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
