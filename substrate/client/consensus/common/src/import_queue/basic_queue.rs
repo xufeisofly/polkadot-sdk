@@ -626,7 +626,7 @@ mod tests {
 						import_existing: false,
 						state: None,
 						skip_execution: false,
-						allow_missing_parent: false,
+						from_bft_warp: false,
 					}],
 				))
 				.unwrap();

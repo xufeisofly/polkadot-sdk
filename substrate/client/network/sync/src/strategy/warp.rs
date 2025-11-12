@@ -426,7 +426,7 @@ where
 					import_existing: false,
 					state: None,
 					// Rocky: we are in warp sync for PC-BFT, so we don't need a parent
-					allow_missing_parent: true,
+					from_bft_warp: true,
 				}
 			};
 
@@ -1342,7 +1342,7 @@ mod test {
 				skip_execution: true,
 				import_existing: false,
 				state: None,
-				allow_missing_parent: true,
+				from_bft_warp: true,
 			}
 		);
 		assert!(matches!(warp_sync.phase, Phase::WarpProof { .. }));
@@ -1427,7 +1427,7 @@ mod test {
 				skip_execution: true,
 				import_existing: false,
 				state: None,
-				allow_missing_parent: true,
+				from_bft_warp: true,
 			}
 		);
 		assert!(

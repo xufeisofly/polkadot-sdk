@@ -172,7 +172,7 @@ fn import_block_to_queue<TBl, TImpQu>(
 			import_existing: force,
 			state: None,
 			skip_execution: false,
-			allow_missing_parent: false,
+			from_bft_warp: false,
 		}],
 	);
 }

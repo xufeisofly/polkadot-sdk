@@ -231,7 +231,7 @@ impl<B: BlockT> StateStrategy<B> {
 					skip_execution: true,
 					state: Some(state),
 					// Rocky: state sync if after warp sync, so we can allow missing parent
-					allow_missing_parent: true,
+					from_bft_warp: true,
 				};
 				debug!(target: LOG_TARGET, "State download is complete. Import is queued");
 				self.actions.push(SyncingAction::ImportBlocks { origin, blocks: vec![block] });
@@ -740,7 +740,7 @@ mod test {
 			import_existing: true,
 			skip_execution: true,
 			state: Some(state),
-			allow_missing_parent: true,
+			from_bft_warp: true,
 		};
 		let expected_blocks = vec![expected_block];
 
