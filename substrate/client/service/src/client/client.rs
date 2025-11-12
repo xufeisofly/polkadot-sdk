@@ -903,11 +903,25 @@ where
 			.header(hash)?
 			.ok_or(Error::MissingHeader(format!("{hash:?}")))?
 			.parent_hash();
+		warn!(
+			"===4.1 Finalizing block {:?} (parent: {:?}), last finalized: {:?}",
+			hash,
+			parent_hash,
+			info.finalized_hash
+		);
 		// Find tree route from last finalized to given block.
 		let route_from_finalized =
 			sp_blockchain::tree_route(self.backend.blockchain(), parent_hash, hash)?;
 		// let route_from_finalized =
 		// 	sp_blockchain::tree_route(self.backend.blockchain(), info.finalized_hash, hash)?;
+
+		warn!(
+			"===4.2 Route from finalized {:?} to {:?}: enacted: {:?}, retracted: {:?}",
+			parent_hash,
+			hash,
+			route_from_finalized.enacted().iter().map(|b| b.hash).collect::<Vec<_>>(),
+			route_from_finalized.retracted().iter().map(|b| b.hash).collect::<Vec<_>>(),
+		);
 
 		if let Some(retracted) = route_from_finalized.retracted().get(0) {
 			warn!(
@@ -945,14 +959,20 @@ where
 			}
 		}
 
+		warn!("===4.3 Route from finalized");		
+
 		let enacted = route_from_finalized.enacted();
 		assert!(enacted.len() > 0);
 		for finalize_new in &enacted[..enacted.len() - 1] {
 			operation.op.mark_finalized(finalize_new.hash, None)?;
 		}
 
+		warn!("===4.4 Route from finalized");
+
 		assert_eq!(enacted.last().map(|e| e.hash), Some(hash));
 		operation.op.mark_finalized(hash, justification)?;
+
+		warn!("===4.5 Route from finalized");
 
 		if notify {
 			let finalized =
@@ -966,6 +986,7 @@ where
 				)
 				.number;
 
+			warn!("===4.6 Route from finalized");
 			// The stale heads are the leaves that will be displaced after the
 			// block is finalized.
 			let stale_heads = self
@@ -983,6 +1004,8 @@ where
 
 			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_heads });
 		}
+
+		warn!("===4.7 Route from finalized");
 
 		Ok(())
 	}
