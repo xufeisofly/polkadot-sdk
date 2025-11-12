@@ -1717,13 +1717,17 @@ where
 		}
 
 		if let Some(BlockGap { start, end, .. }) = info.block_gap {
-			let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
-			debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
-			self.gap_sync = Some(GapSync {
-				best_queued_number: start - One::one(),
-				target: end,
-				blocks: BlockCollection::new(),
-			});
+			if end <= info.finalized_number { // Rocky: ignore gaps before finalized, mainly for warp sync case
+		        debug!(target: LOG_TARGET, "#===# Ignoring gap before finalized number {}, gap_end: {}", info.finalized_number, end);
+		    } else {
+				let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
+				debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
+				self.gap_sync = Some(GapSync {
+					best_queued_number: start - One::one(),
+					target: end,
+					blocks: BlockCollection::new(),
+				});
+			}
 		}
 		trace!(
 			target: LOG_TARGET,
