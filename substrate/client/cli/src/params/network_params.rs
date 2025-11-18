@@ -164,6 +164,10 @@ pub struct NetworkParams {
 	)]
 	pub sync: SyncMode,
 
+	/// Specify a list of bootnodes.
+	#[arg(long, value_name = "TRUSTED_VALIDATORS_WARP", num_args = 0..)]
+	pub trusted_validators_warp_sync: Vec<String>,
+
 	/// Maximum number of blocks per request.
 	///
 	/// Try reducing this number from the default value if you have a slow network connection
@@ -284,6 +288,7 @@ impl NetworkParams {
 			kademlia_replication_factor: self.kademlia_replication_factor,
 			ipfs_server: self.ipfs_server,
 			sync_mode: self.sync.into(),
+			trusted_validators_warp_sync: self.trusted_validators_warp_sync.clone(),
 			network_backend: self.network_backend.into(),
 		}
 	}
