@@ -161,13 +161,13 @@ pub struct NetworkParams {
 		default_value_t = SyncMode::Full,
 		ignore_case = true,
 		verbatim_doc_comment,
-		requires_if("warp", "trusted_validators_warp_sync")
+		requires_if("warp", "trusted_block_validators_warp_sync")
 	)]
 	pub sync: SyncMode,
 
-	/// Specify a list of trusted validator ids for warp sync.
+	/// Specify a list of validator ids of a trusted block for warp sync.
 	#[arg(long, value_name = "TRUSTED_VALIDATORS_WARP", num_args = 1..)]
-	pub trusted_validators_warp_sync: Vec<String>,
+	pub trusted_block_validators_warp_sync: Vec<String>,
 
 	/// Maximum number of blocks per request.
 	///
@@ -289,7 +289,7 @@ impl NetworkParams {
 			kademlia_replication_factor: self.kademlia_replication_factor,
 			ipfs_server: self.ipfs_server,
 			sync_mode: self.sync.into(),
-			trusted_validators_warp_sync: self.trusted_validators_warp_sync.clone(),
+			trusted_block_validators_warp_sync: self.trusted_block_validators_warp_sync.clone(),
 			network_backend: self.network_backend.into(),
 		}
 	}
