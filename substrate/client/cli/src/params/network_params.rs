@@ -160,12 +160,13 @@ pub struct NetworkParams {
 		value_name = "SYNC_MODE",
 		default_value_t = SyncMode::Full,
 		ignore_case = true,
-		verbatim_doc_comment
+		verbatim_doc_comment,
+		requires_if("warp", "trusted_validators_warp_sync")
 	)]
 	pub sync: SyncMode,
 
-	/// Specify a list of bootnodes.
-	#[arg(long, value_name = "TRUSTED_VALIDATORS_WARP", num_args = 0..)]
+	/// Specify a list of trusted validator ids for warp sync.
+	#[arg(long, value_name = "TRUSTED_VALIDATORS_WARP", num_args = 1..)]
 	pub trusted_validators_warp_sync: Vec<String>,
 
 	/// Maximum number of blocks per request.
