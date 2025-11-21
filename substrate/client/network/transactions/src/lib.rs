@@ -337,6 +337,9 @@ where
 				}
 				message = self.from_controller.select_next_some() => {
 					match message {
+						#[cfg(feature = "txpool-async-propagate")]
+						ToHandler::PropagateTransaction(hash) => self.propagate_transaction_async(&hash).await,
+						#[cfg(not(feature = "txpool-async-propagate"))]
 						ToHandler::PropagateTransaction(hash) => self.propagate_transaction(&hash),
 						ToHandler::PropagateTransactions => self.propagate_transactions(),
 					}
@@ -496,6 +499,22 @@ where
 		}
 	}
 
+	/// Propagate one transaction.
+	pub async fn propagate_transaction_async(&mut self, hash: &H) {
+		// Accept transactions only when node is not major syncing
+		if self.sync.is_major_syncing() {
+			return
+		}
+
+		debug!(target: LOG_TARGET, "Async propagating transaction [{:?}]", hash);
+		if let Some(transaction) = self.transaction_pool.transaction(hash) {
+			let propagated_to = self.do_propagate_transactions_async(&[(hash.clone(), transaction)]).await;
+			self.transaction_pool.on_broadcasted(propagated_to);
+		} else {
+			debug!(target: "sync", "Propagating transaction failure [{:?}]", hash);
+		}
+	}
+
 	fn do_propagate_transactions(
 		&mut self,
 		transactions: &[(H, Arc<B::Extrinsic>)],
@@ -532,12 +551,47 @@ where
 				// element in it.
 				// See <https://github.com/polkadot-fellows/RFCs/blob/main/text/0056-one-transaction-per-notification.md>
 				for to_send in to_send {
-					#[cfg(not(feature = "txpool-async-propagate"))]
 					let _ = self
 						.notification_service
 						.send_sync_notification(who, vec![to_send].encode());
+				}
+			}
+		}
 
-					#[cfg(feature = "txpool-async-propagate")]
+		if let Some(ref metrics) = self.metrics {
+			metrics.propagated_transactions.inc_by(propagated_transactions as _)
+		}
+
+		propagated_to
+	}
+
+	async fn do_propagate_transactions_async(
+		&mut self,
+		transactions: &[(H, Arc<B::Extrinsic>)],
+	) -> HashMap<H, Vec<String>> {
+		let mut propagated_to = HashMap::<_, Vec<_>>::new();
+		let mut propagated_transactions = 0;
+
+		for (who, peer) in self.peers.iter_mut() {
+			// never send transactions to the light node
+			if matches!(peer.role, ObservedRole::Light) {
+				continue
+			}
+
+			let (hashes, to_send): (Vec<_>, Transactions<_>) = transactions
+				.iter()
+				.filter(|(hash, _)| peer.known_transactions.insert(hash.clone()))
+				.cloned()
+				.unzip();
+
+			propagated_transactions += hashes.len();
+
+			if !to_send.is_empty() {
+				for hash in hashes {
+					propagated_to.entry(hash).or_default().push(who.to_base58());
+				}
+				trace!(target: "sync", "Async sending {} transactions to {}", to_send.len(), who);
+				for to_send in to_send {
 					match self
 						.notification_service
 						.send_async_notification(who, vec![to_send].encode()).await {
