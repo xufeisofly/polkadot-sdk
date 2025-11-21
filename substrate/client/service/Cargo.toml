@@ -88,3 +88,4 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 ]
 txpool-auth-propagate-disable = ["sc-network-transactions/txpool-auth-propagate-disable"]
+txpool-async-propagate = ["sc-network-transactions/txpool-async-propagate"]

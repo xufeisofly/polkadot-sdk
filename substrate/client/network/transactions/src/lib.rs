@@ -314,8 +314,11 @@ where
 				_ = self.propagate_timeout.next() => {
 					#[cfg(not(feature = "txpool-auth-propagate-disable"))]
 					self.propagate_transactions();
+
 					#[cfg(feature = "txpool-auth-propagate-disable")]
-					debug!(target: "sub-libp2p", "txpool-auth-propagate-disable is enabled, skip propagate transactions");
+					if !self.is_authority {
+						self.propagate_transactions();
+					}
 				},
 				(tx_hash, result) = self.pending_transactions.select_next_some() => {
 					if let Some(peers) = self.pending_transactions_peers.remove(&tx_hash) {
@@ -529,9 +532,20 @@ where
 				// element in it.
 				// See <https://github.com/polkadot-fellows/RFCs/blob/main/text/0056-one-transaction-per-notification.md>
 				for to_send in to_send {
+					#[cfg(not(feature = "txpool-async-propagate"))]
 					let _ = self
 						.notification_service
 						.send_sync_notification(who, vec![to_send].encode());
+
+					#[cfg(feature = "txpool-async-propagate")]
+					match self
+						.notification_service
+						.send_async_notification(who, vec![to_send].encode()).await {
+						Ok(_) => {},
+						Err(e) => {
+							warn!(target: "sub-libp2p", "#===# Failed to send transaction to peer {}: {}", who, e);
+						}
+					}
 				}
 			}
 		}
