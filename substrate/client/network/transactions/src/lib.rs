@@ -339,8 +339,14 @@ where
 					match message {
 						#[cfg(feature = "txpool-async-propagate")]
 						ToHandler::PropagateTransaction(hash) => self.propagate_transaction_async(&hash).await,
+
+						#[cfg(feature = "txpool-async-propagate")]
+						ToHandler::PropagateTransactions => self.propagate_transactions_async().await,
+
 						#[cfg(not(feature = "txpool-async-propagate"))]
 						ToHandler::PropagateTransaction(hash) => self.propagate_transaction(&hash),
+
+						#[cfg(not(feature = "txpool-async-propagate"))]
 						ToHandler::PropagateTransactions => self.propagate_transactions(),
 					}
 				},
@@ -627,6 +633,24 @@ where
 		debug!(target: LOG_TARGET, "Propagating transactions");
 
 		let propagated_to = self.do_propagate_transactions(&transactions);
+		self.transaction_pool.on_broadcasted(propagated_to);
+	}
+
+	async fn propagate_transactions_async(&mut self) {
+		// Accept transactions only when node is not major syncing
+		if self.sync.is_major_syncing() {
+			return
+		}
+
+		let transactions = self.transaction_pool.transactions();
+
+		if transactions.is_empty() {
+			return
+		}
+
+		debug!(target: LOG_TARGET, "Async propagating transactions");
+
+		let propagated_to = self.do_propagate_transactions_async(&transactions).await;
 		self.transaction_pool.on_broadcasted(propagated_to);
 	}
 }
