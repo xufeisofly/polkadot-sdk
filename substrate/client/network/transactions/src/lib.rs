@@ -315,7 +315,7 @@ where
 					#[cfg(not(feature = "txpool-auth-propagate-disable"))]
 					self.propagate_transactions();
 					#[cfg(feature = "txpool-auth-propagate-disable")]
-					info!(target: "sub-libp2p", "txpool-auth-propagate-disable is enabled, skip propagate transactions");
+					debug!(target: "sub-libp2p", "txpool-auth-propagate-disable is enabled, skip propagate transactions");
 				},
 				(tx_hash, result) = self.pending_transactions.select_next_some() => {
 					if let Some(peers) = self.pending_transactions_peers.remove(&tx_hash) {
