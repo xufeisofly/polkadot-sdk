@@ -194,6 +194,7 @@ impl TransactionsHandlerPrototype {
 		network: N,
 		sync: S,
 		transaction_pool: Arc<dyn TransactionPool<H, B>>,
+		is_authority: bool,
 		metrics_registry: Option<&Registry>,
 	) -> error::Result<(TransactionsHandler<B, H, N, S>, TransactionsHandlerController<H>)> {
 		let sync_event_stream = sync.event_stream("transactions-handler-sync");
@@ -218,6 +219,7 @@ impl TransactionsHandlerPrototype {
 			} else {
 				None
 			},
+			is_authority,
 		};
 
 		let controller = TransactionsHandlerController { to_handler };
@@ -285,6 +287,8 @@ pub struct TransactionsHandler<
 	metrics: Option<Metrics>,
 	/// Handle that is used to communicate with `sc_network::Notifications`.
 	notification_service: Box<dyn NotificationService>,
+	/// Rocky: is_authority
+	is_authority: bool,
 }
 
 /// Peer information
@@ -308,7 +312,10 @@ where
 		loop {
 			futures::select! {
 				_ = self.propagate_timeout.next() => {
+					#[cfg(not(feature = "txpool-auth-propagate-disable"))]
 					self.propagate_transactions();
+					#[cfg(feature = "txpool-auth-propagate-disable")]
+					info!(target: "sub-libp2p", "txpool-auth-propagate-disable is enabled, skip propagate transactions");
 				},
 				(tx_hash, result) = self.pending_transactions.select_next_some() => {
 					if let Some(peers) = self.pending_transactions_peers.remove(&tx_hash) {

@@ -547,7 +547,7 @@ where
 		sc_transaction_pool::notification_future(client.clone(), transaction_pool.clone()),
 	);
 
-	#[cfg(feature = "txpool-propagate-disable")]
+	#[cfg(feature = "txpool-auth-propagate-disable")]
 	if !config.role.is_authority() {
 		spawn_handle.spawn(
 			"on-transaction-imported",
@@ -560,7 +560,7 @@ where
 		);
 	}
 
-	#[cfg(not(feature = "txpool-propagate-disable"))]
+	#[cfg(not(feature = "txpool-auth-propagate-disable"))]
 	spawn_handle.spawn(
 		"on-transaction-imported",
 		Some("transaction-pool"),
@@ -1210,6 +1210,7 @@ where
 		network.clone(),
 		sync_service.clone(),
 		Arc::new(TransactionPoolAdapter { pool: transaction_pool, client: client.clone() }),
+		role.is_authority(),
 		metrics_registry,
 	)?;
 	spawn_handle.spawn_blocking(
