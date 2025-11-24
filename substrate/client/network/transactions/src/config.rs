@@ -25,7 +25,7 @@ use sp_runtime::traits::Block as BlockT;
 use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc, time};
 
 /// Interval at which we propagate transactions;
-pub(crate) const PROPAGATE_TIMEOUT: time::Duration = time::Duration::from_millis(1500); // Rocky: old value is 2900ms
+pub(crate) const PROPAGATE_TIMEOUT: time::Duration = time::Duration::from_millis(2000); // Rocky: old value is 2900ms
 
 /// Maximum number of known transaction hashes to keep for a peer.
 ///
