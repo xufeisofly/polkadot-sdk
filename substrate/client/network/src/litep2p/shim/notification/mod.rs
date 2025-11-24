@@ -204,7 +204,7 @@ impl NotificationService for NotificationProtocol {
 		match self.handle.send_sync_notification(peer.into(), notification) {
 			Ok(_) => self.metrics.register_notification_sent(&self.protocol, size),
 			Err(e) => {
-				log::trace!(
+				log::error!(
 					target: LOG_TARGET,
 					"===7.1 {}: failed to send sync notification to {:?}: {e:?}",
 					self.protocol,
