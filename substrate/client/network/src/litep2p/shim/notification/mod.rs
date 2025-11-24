@@ -201,8 +201,16 @@ impl NotificationService for NotificationProtocol {
 	fn send_sync_notification(&mut self, peer: &PeerId, notification: Vec<u8>) {
 		let size = notification.len();
 
-		if let Ok(_) = self.handle.send_sync_notification(peer.into(), notification) {
-			self.metrics.register_notification_sent(&self.protocol, size);
+		match self.handle.send_sync_notification(peer.into(), notification) {
+			Ok(_) => self.metrics.register_notification_sent(&self.protocol, size),
+			Err(e) => {
+				log::trace!(
+					target: LOG_TARGET,
+					"===7.1 {}: failed to send sync notification to {:?}: {e:?}",
+					self.protocol,
+					peer,
+				)
+			},
 		}
 	}
 
