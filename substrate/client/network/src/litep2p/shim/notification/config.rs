@@ -38,7 +38,7 @@ use std::sync::{atomic::AtomicUsize, Arc};
 pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 128; // Rocky: old value is 8;
 
 /// Number of pending notifications in synchronous contexts.
-const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8192; // Rocky: old value is 2048;
+const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8192 * 5; // Rocky: old value is 2048; better same size as ready pool for transactions propagation.
 
 /// Handle for controlling the notification protocol.
 #[derive(Debug, Clone)]
