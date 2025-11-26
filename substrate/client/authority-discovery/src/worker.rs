@@ -623,6 +623,12 @@ where
 			.filter(|id| !local_keys.contains(id.as_ref()))
 			.collect::<Vec<_>>();
 
+		trace!(
+			target: LOG_TARGET,
+			"#===# AuthorityDiscovery lookup from DHT for authorities: {:#?}.",
+			authorities,
+		);
+
 		self.known_authorities = authorities
 			.clone()
 			.into_iter()
