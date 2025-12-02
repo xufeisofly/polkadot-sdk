@@ -31,5 +31,5 @@ sp-runtime = { workspace = true, default-features = true }
 
 [features]
 default = []
-txpool-auth-propagate-disable = []
+txpool-auth-propagate-timeout-disable = []
 txpool-async-propagate = []

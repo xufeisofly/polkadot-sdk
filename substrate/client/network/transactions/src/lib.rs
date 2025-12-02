@@ -312,10 +312,10 @@ where
 		loop {
 			futures::select! {
 				_ = self.propagate_timeout.next() => {
-					#[cfg(not(feature = "txpool-auth-propagate-disable"))]
+					#[cfg(not(feature = "txpool-auth-propagate-timeout-disable"))]
 					self.propagate_transactions();
 
-					#[cfg(feature = "txpool-auth-propagate-disable")]
+					#[cfg(feature = "txpool-auth-propagate-timeout-disable")]
 					if !self.is_authority {
 						self.propagate_transactions();
 					}
