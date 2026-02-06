@@ -30,15 +30,16 @@ use sp_runtime::{
 	},
 };
 use std::{
-	collections::HashMap,
+	collections::{HashMap, HashSet},
 	sync::Arc,
 	time::{Duration, Instant},
 };
-use tracing::{debug, instrument, trace, Level};
+use tracing::{debug, info, instrument, trace, Level};
 
 use super::{
 	base_pool as base,
 	validated_pool::{IsValidator, ValidatedPool, ValidatedTransaction},
+	rotator::BannedReason,
 	EventHandler, ValidatedPoolSubmitOutcome,
 };
 
@@ -158,6 +159,8 @@ pub struct Options {
 	pub reject_future_transactions: bool,
 	/// How long the extrinsic is banned for.
 	pub ban_time: Duration,
+
+	pub ban_expected_size: usize,
 }
 
 impl Default for Options {
@@ -167,6 +170,7 @@ impl Default for Options {
 			future: base::Limit { count: 512, total_bytes: 1 * 1024 * 1024 },
 			reject_future_transactions: false,
 			ban_time: Duration::from_secs(60 * 30),
+			ban_expected_size: 8192,
 		}
 	}
 }
@@ -375,6 +379,7 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 				// to get validity info and tags that the extrinsic provides.
 				None => {
 					// Avoid validating block txs if the pool is empty
+					// TODO: InBlock 的 txs 已经被共识验证过了，即使 pool 里没有 tx，也没必要再验证一遍
 					if !self.validated_pool.status().is_empty() {
 						validated_counter = validated_counter + 1;
 						let validity = self
@@ -457,13 +462,29 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 		// imported block. This is especially important for UTXO-like chains cause the
 		// inputs are pruned so such transaction would go to future again.
 		self.validated_pool
-			.ban(&Instant::now(), known_imported_hashes.clone().into_iter());
+			.ban(&Instant::now(), known_imported_hashes.clone().into_iter(), BannedReason::PrunedInBlock);
 
 		// Try to re-validate pruned transactions since some of them might be still valid.
 		// note that `known_imported_hashes` will be rejected here due to temporary ban.
-		let pruned_transactions =
-			prune_status.pruned.into_iter().map(|tx| (tx.source.clone(), tx.data.clone()));
+		// let pruned_transactions =
+			// prune_status.pruned.into_iter().map(|tx| (tx.source.clone(), tx.data.clone()));
 
+		// Rocky: filter out known imported hashes from pruned transactions manually instead of using validate_pool.ban
+		// because validator_pool.ban_rotator is a soft cache based on TTL and capacity, it may evict some hashes before we finish revalidating pruned transactions.
+		let known_set: HashSet<_> = known_imported_hashes.clone().into_iter().collect();
+		let pruned_transactions = prune_status
+    		.pruned
+	    	.into_iter()
+	    	.filter_map(|tx| {
+        		let tx_hash = tx.hash;
+	       	 	if known_set.contains(&tx_hash) {
+    	      	  	None
+        		} else {
+            		Some((tx.source.clone(), tx.data.clone()))
+	        	}
+    		});
+
+		let s2 = std::time::Instant::now();
 		let reverified_transactions = self
 			.verify(
 				at,
@@ -472,6 +493,9 @@ impl<B: ChainApi, L: EventHandler<B>> Pool<B, L> {
 				ValidateTransactionPriority::Maintained,
 			)
 			.await;
+		debug!(target: LOG_TARGET, ?at, reverified = reverified_transactions.len(), duration = ?s2.elapsed(), 
+			"#===# Revalidating pruned txs: done."
+		);
 
 		let pruned_hashes = reverified_transactions.keys().map(Clone::clone).collect::<Vec<_>>();
 		debug!(
@@ -695,7 +719,7 @@ mod tests {
 		});
 
 		// when
-		pool.validated_pool.ban(&Instant::now(), vec![pool.hash_of(&uxt)]);
+		pool.validated_pool.ban(&Instant::now(), vec![pool.hash_of(&uxt)], BannedReason::Unknown);
 		let res = block_on(pool.submit_one(&api.expect_hash_and_number(0), SOURCE, uxt.into()))
 			.map(|o| o.hash());
 		assert_eq!(pool.validated_pool().status().ready, 0);

@@ -74,13 +74,25 @@ mod rep {
 	///
 	/// This forces node to verify it, thus the negative value here. Once transaction is verified,
 	/// reputation change should be refunded with `ANY_TRANSACTION_REFUND`
-	pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// pub const ANY_TRANSACTION: Rep = Rep::new(-(1 << 4), "Any transaction");
+	// /// Reputation change when a peer sends us any transaction that is not invalid.
+	// pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
+	// /// Reputation change when a peer sends us an transaction that is temporarily banned.
+	// pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(1 << 4, "Temp banned transaction");
+	// /// Reputation change when a peer sends us a good transaction.
+	// pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	// /// Reputation change when a peer sends us a bad transaction.
+	// pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+
+	pub const ANY_TRANSACTION: Rep = Rep::new(0, "Any transaction");
 	/// Reputation change when a peer sends us any transaction that is not invalid.
-	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(1 << 4, "Any transaction (refund)");
-	/// Reputation change when a peer sends us an transaction that we didn't know about.
-	pub const GOOD_TRANSACTION: Rep = Rep::new(1 << 7, "Good transaction");
+	pub const ANY_TRANSACTION_REFUND: Rep = Rep::new(0, "Any transaction (refund)");
+	/// Reputation change when a peer sends us an transaction that is temporarily banned.
+	pub const TEMP_BANNED_TRANSACTION: Rep = Rep::new(0, "Temp banned transaction");
+	/// Reputation change when a peer sends us a good transaction.
+	pub const GOOD_TRANSACTION: Rep = Rep::new(0, "Good transaction");
 	/// Reputation change when a peer sends us a bad transaction.
-	pub const BAD_TRANSACTION: Rep = Rep::new(-(1 << 12), "Bad transaction");
+	pub const BAD_TRANSACTION: Rep = Rep::new(0, "Bad transaction");	
 }
 
 struct Metrics {
@@ -182,6 +194,7 @@ impl TransactionsHandlerPrototype {
 		network: N,
 		sync: S,
 		transaction_pool: Arc<dyn TransactionPool<H, B>>,
+		is_authority: bool,
 		metrics_registry: Option<&Registry>,
 	) -> error::Result<(TransactionsHandler<B, H, N, S>, TransactionsHandlerController<H>)> {
 		let sync_event_stream = sync.event_stream("transactions-handler-sync");
@@ -206,6 +219,7 @@ impl TransactionsHandlerPrototype {
 			} else {
 				None
 			},
+			is_authority,
 		};
 
 		let controller = TransactionsHandlerController { to_handler };
@@ -273,6 +287,8 @@ pub struct TransactionsHandler<
 	metrics: Option<Metrics>,
 	/// Handle that is used to communicate with `sc_network::Notifications`.
 	notification_service: Box<dyn NotificationService>,
+	/// Rocky: is_authority
+	is_authority: bool,
 }
 
 /// Peer information
@@ -296,7 +312,13 @@ where
 		loop {
 			futures::select! {
 				_ = self.propagate_timeout.next() => {
+					#[cfg(not(feature = "txpool-auth-propagate-timeout-disable"))]
 					self.propagate_transactions();
+
+					#[cfg(feature = "txpool-auth-propagate-timeout-disable")]
+					if !self.is_authority {
+						self.propagate_transactions();
+					}
 				},
 				(tx_hash, result) = self.pending_transactions.select_next_some() => {
 					if let Some(peers) = self.pending_transactions_peers.remove(&tx_hash) {
@@ -315,7 +337,16 @@ where
 				}
 				message = self.from_controller.select_next_some() => {
 					match message {
+						#[cfg(feature = "txpool-async-propagate")]
+						ToHandler::PropagateTransaction(hash) => self.propagate_transaction_async(&hash).await,
+
+						#[cfg(feature = "txpool-async-propagate")]
+						ToHandler::PropagateTransactions => self.propagate_transactions_async().await,
+
+						#[cfg(not(feature = "txpool-async-propagate"))]
 						ToHandler::PropagateTransaction(hash) => self.propagate_transaction(&hash),
+
+						#[cfg(not(feature = "txpool-async-propagate"))]
 						ToHandler::PropagateTransactions => self.propagate_transactions(),
 					}
 				},
@@ -380,12 +411,15 @@ where
 			SyncEvent::PeerConnected(remote) => {
 				let addr = iter::once(multiaddr::Protocol::P2p(remote.into()))
 					.collect::<multiaddr::Multiaddr>();
+
 				let result = self.network.add_peers_to_reserved_set(
 					self.protocol_name.clone(),
 					iter::once(addr).collect(),
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Add reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Add reserved peer success: {:?}", remote);
 				}
 			},
 			SyncEvent::PeerDisconnected(remote) => {
@@ -395,6 +429,8 @@ where
 				);
 				if let Err(err) = result {
 					log::error!(target: LOG_TARGET, "Remove reserved peer failed: {}", err);
+				} else {
+					log::debug!(target: LOG_TARGET, "Remove reserved peer success: {:?}", remote);
 				}
 			},
 		}
@@ -447,6 +483,8 @@ where
 				self.network.report_peer(who, rep::ANY_TRANSACTION_REFUND),
 			TransactionImport::NewGood => self.network.report_peer(who, rep::GOOD_TRANSACTION),
 			TransactionImport::Bad => self.network.report_peer(who, rep::BAD_TRANSACTION),
+			TransactionImport::TemporarilyBanned =>
+				self.network.report_peer(who, rep::TEMP_BANNED_TRANSACTION),
 			TransactionImport::None => {},
 		}
 	}
@@ -461,6 +499,22 @@ where
 		debug!(target: LOG_TARGET, "Propagating transaction [{:?}]", hash);
 		if let Some(transaction) = self.transaction_pool.transaction(hash) {
 			let propagated_to = self.do_propagate_transactions(&[(hash.clone(), transaction)]);
+			self.transaction_pool.on_broadcasted(propagated_to);
+		} else {
+			debug!(target: "sync", "Propagating transaction failure [{:?}]", hash);
+		}
+	}
+
+	/// Propagate one transaction.
+	pub async fn propagate_transaction_async(&mut self, hash: &H) {
+		// Accept transactions only when node is not major syncing
+		if self.sync.is_major_syncing() {
+			return
+		}
+
+		debug!(target: LOG_TARGET, "Async propagating transaction [{:?}]", hash);
+		if let Some(transaction) = self.transaction_pool.transaction(hash) {
+			let propagated_to = self.do_propagate_transactions_async(&[(hash.clone(), transaction)]).await;
 			self.transaction_pool.on_broadcasted(propagated_to);
 		} else {
 			debug!(target: "sync", "Propagating transaction failure [{:?}]", hash);
@@ -517,6 +571,52 @@ where
 		propagated_to
 	}
 
+	async fn do_propagate_transactions_async(
+		&mut self,
+		transactions: &[(H, Arc<B::Extrinsic>)],
+	) -> HashMap<H, Vec<String>> {
+		let mut propagated_to = HashMap::<_, Vec<_>>::new();
+		let mut propagated_transactions = 0;
+
+		for (who, peer) in self.peers.iter_mut() {
+			// never send transactions to the light node
+			if matches!(peer.role, ObservedRole::Light) {
+				continue
+			}
+
+			let (hashes, to_send): (Vec<_>, Transactions<_>) = transactions
+				.iter()
+				.filter(|(hash, _)| peer.known_transactions.insert(hash.clone()))
+				.cloned()
+				.unzip();
+
+			propagated_transactions += hashes.len();
+
+			if !to_send.is_empty() {
+				for hash in hashes {
+					propagated_to.entry(hash).or_default().push(who.to_base58());
+				}
+				trace!(target: "sync", "Async sending {} transactions to {}", to_send.len(), who);
+				for to_send in to_send {
+					match self
+						.notification_service
+						.send_async_notification(who, vec![to_send].encode()).await {
+						Ok(_) => {},
+						Err(e) => {
+							warn!(target: "sub-libp2p", "#===# Failed to send transaction to peer {}: {}", who, e);
+						}
+					}
+				}
+			}
+		}
+
+		if let Some(ref metrics) = self.metrics {
+			metrics.propagated_transactions.inc_by(propagated_transactions as _)
+		}
+
+		propagated_to
+	}
+
 	/// Call when we must propagate ready transactions to peers.
 	fn propagate_transactions(&mut self) {
 		// Accept transactions only when node is not major syncing
@@ -533,6 +633,24 @@ where
 		debug!(target: LOG_TARGET, "Propagating transactions");
 
 		let propagated_to = self.do_propagate_transactions(&transactions);
+		self.transaction_pool.on_broadcasted(propagated_to);
+	}
+
+	async fn propagate_transactions_async(&mut self) {
+		// Accept transactions only when node is not major syncing
+		if self.sync.is_major_syncing() {
+			return
+		}
+
+		let transactions = self.transaction_pool.transactions();
+
+		if transactions.is_empty() {
+			return
+		}
+
+		debug!(target: LOG_TARGET, "Async propagating transactions");
+
+		let propagated_to = self.do_propagate_transactions_async(&transactions).await;
 		self.transaction_pool.on_broadcasted(propagated_to);
 	}
 }

@@ -153,6 +153,17 @@ pub enum StateAction<Block: BlockT> {
 	Skip,
 }
 
+impl<B: BlockT> std::fmt::Debug for StateAction<B> {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			StateAction::ApplyChanges(_) => fmt.debug_tuple("ApplyChanges").finish(),
+			StateAction::Execute => fmt.debug_tuple("Execute").finish(),
+			StateAction::ExecuteIfPossible => fmt.debug_tuple("ExecuteIfPossible").finish(),
+			StateAction::Skip => fmt.debug_tuple("Skip").finish(),
+		}
+	}
+}
+
 impl<Block: BlockT> StateAction<Block> {
 	/// Check if execution checks that require runtime calls should be skipped.
 	pub fn skip_execution_checks(&self) -> bool {
@@ -232,6 +243,10 @@ pub struct BlockImportParams<Block: BlockT> {
 	pub create_gap: bool,
 	/// Cached full header hash (with post-digests applied).
 	pub post_hash: Option<Block::Hash>,
+	/// Rocky: Allow importing the block even if the parent block is missing.
+	/// This is used for warp sync where we import block with warp proofs
+	/// but without the parent block
+	pub allow_missing_parent: bool,
 }
 
 impl<Block: BlockT> BlockImportParams<Block> {
@@ -252,6 +267,7 @@ impl<Block: BlockT> BlockImportParams<Block> {
 			import_existing: false,
 			create_gap: true,
 			post_hash: None,
+			allow_missing_parent: false, // Rocky: default to false
 		}
 	}
 

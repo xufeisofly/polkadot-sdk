@@ -67,3 +67,6 @@ substrate-test-runtime-client = { workspace = true }
 
 [build-dependencies]
 prost-build = { workspace = true }
+
+[features]
+bft-warp = []

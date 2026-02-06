@@ -807,8 +807,13 @@ where
 				StateAction::ApplyChanges(sc_consensus::StorageChanges::Changes(_)),
 			) => return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),
 			(_, StateAction::ApplyChanges(changes)) => (true, Some(changes)),
-			(BlockStatus::Unknown, _) =>
-				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent)),
+			(BlockStatus::Unknown, StateAction::Skip) if import_block.allow_missing_parent => {
+				// Rocky: for PC-BFT warp proof syncing situation, the synced block don't need a parent to be known.
+				(false, None)
+			},
+			(BlockStatus::Unknown, _) => {
+				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent));
+			},
 			(_, StateAction::Skip) => (false, None),
 			(BlockStatus::InChainPruned, StateAction::Execute) =>
 				return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),
@@ -952,6 +957,60 @@ where
 			}));
 
 			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_blocks });
+		}
+
+		Ok(())
+	}
+
+	/// Rocky: Apply finality for a block hash without checking for ancestors
+	/// For now this is only used for finalizing the block synced by warp mode of PC-BFT
+	/// as parents are not needed to be finalized in that case.
+	fn apply_finality_with_block_hash_no_recursive(
+		&self,
+		operation: &mut ClientImportOperation<Block, B>,
+		hash: Block::Hash,
+		justification: Option<Justification>,
+		info: &BlockchainInfo<Block>,
+		notify: bool,
+	) -> sp_blockchain::Result<()> {
+		if hash == info.finalized_hash {
+			warn!(
+				"Possible safety violation: attempted to re-finalize last finalized block {:?} ",
+				hash,
+			);
+			return Ok(())
+		}
+
+		let block_number = self
+			.backend
+			.blockchain()
+			.number(hash)?
+			.ok_or(Error::MissingHeader(format!("{hash:?}")))?;
+		
+		if self.backend.blockchain().leaves()?.len() > 1 || info.best_number < block_number {
+			operation.op.mark_head(hash)?;
+		}
+
+		operation.op.mark_finalized(hash, None)?;
+
+		if notify {
+			let finalized = vec![hash];
+			// The stale heads are the leaves that will be displaced after the
+			// block is finalized.
+			let stale_heads = self
+				.backend
+				.blockchain()
+				.displaced_leaves_after_finalizing(hash, block_number)?
+				.hashes()
+				.collect();
+
+			let header = self
+				.backend
+				.blockchain()
+				.header(hash)?
+				.expect("Block to finalize expected to be onchain; qed");
+
+			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_heads });
 		}
 
 		Ok(())
@@ -1840,9 +1899,15 @@ where
 		hash: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()> {
 		let info = self.backend.blockchain().info();
-		self.apply_finality_with_block_hash(operation, hash, justification, &info, notify)
+		if no_recursive {
+			// Rocky: for PC-BFT warp synced block
+			self.apply_finality_with_block_hash_no_recursive(operation, hash, justification, &info, notify)
+		} else {
+			self.apply_finality_with_block_hash(operation, hash, justification, &info, notify)
+		}
 	}
 
 	fn finalize_block(
@@ -1850,9 +1915,10 @@ where
 		hash: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()> {
 		self.lock_import_and_run(|operation| {
-			self.apply_finality(operation, hash, justification, notify)
+			self.apply_finality(operation, hash, justification, notify, no_recursive)
 		})
 	}
 }
@@ -1869,8 +1935,9 @@ where
 		hash: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()> {
-		(**self).apply_finality(operation, hash, justification, notify)
+		(**self).apply_finality(operation, hash, justification, notify, no_recursive)
 	}
 
 	fn finalize_block(
@@ -1878,8 +1945,9 @@ where
 		hash: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()> {
-		(**self).finalize_block(hash, justification, notify)
+		(**self).finalize_block(hash, justification, notify, no_recursive)
 	}
 }
 

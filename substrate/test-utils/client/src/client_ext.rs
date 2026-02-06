@@ -76,7 +76,7 @@ where
 		hash: Block::Hash,
 		justification: Option<Justification>,
 	) -> sp_blockchain::Result<()> {
-		Finalizer::finalize_block(self, hash, justification, true)
+		Finalizer::finalize_block(self, hash, justification, true, false)
 	}
 
 	fn genesis_hash(&self) -> <Block as BlockT>::Hash {

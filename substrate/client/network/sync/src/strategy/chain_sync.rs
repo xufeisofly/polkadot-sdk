@@ -343,6 +343,8 @@ pub struct ChainSync<B: BlockT, Client> {
 	actions: Vec<SyncingAction<B>>,
 	/// Prometheus metrics.
 	metrics: Option<Metrics>,
+	/// Rocky: current warp sync progress, if any.
+	warp_target: Option<(B::Hash, NumberFor<B>)>,
 }
 
 impl<B, Client> SyncingStrategy<B> for ChainSync<B, Client>
@@ -944,6 +946,7 @@ where
 		block_downloader: Arc<dyn BlockDownloader<B>>,
 		metrics_registry: Option<&Registry>,
 		initial_peers: impl Iterator<Item = (PeerId, B::Hash, NumberFor<B>)>,
+		warp_target: Option<(B::Hash, NumberFor<B>)>,
 	) -> Result<Self, ClientError> {
 		let mut sync = Self {
 			client,
@@ -977,6 +980,7 @@ where
 					None
 				},
 			}),
+			warp_target,
 		};
 
 		sync.reset_sync_start_point()?;
@@ -1205,6 +1209,7 @@ where
 										import_existing: self.import_existing,
 										skip_execution: true,
 										state: None,
+										from_bft_warp: false,
 									}
 								})
 								.collect();
@@ -1244,6 +1249,7 @@ where
 									import_existing: self.import_existing,
 									skip_execution: self.skip_execution(),
 									state: None,
+									from_bft_warp: false,
 								}
 							})
 							.collect()
@@ -1386,6 +1392,7 @@ where
 							import_existing: false,
 							skip_execution: true,
 							state: None,
+							from_bft_warp: false,
 						}
 					})
 					.collect()
@@ -1714,13 +1721,35 @@ where
 		}
 
 		if let Some(BlockGap { start, end, .. }) = info.block_gap {
-			let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
-			debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
-			self.gap_sync = Some(GapSync {
-				best_queued_number: start - One::one(),
-				target: end,
-				blocks: BlockCollection::new(),
-			});
+			#[cfg(feature = "bft-warp")]
+			{
+				// Rocky: In BFT warp sync mode, we may have a warp target set.
+				// If the gap is before the warp target, we can ignore it.
+				// We don't use finalized_number here, as there might be a delay of warp target finalization.
+				let warp_target_number = self.warp_target.map(|(_, n)| n).unwrap_or_default();
+				if end <= warp_target_number { // Rocky: ignore gaps before finalized, mainly for warp sync case
+					debug!(target: LOG_TARGET, "#===# Ignoring gap before warp block number {}, gap_end: {}", info.finalized_number, end);
+				} else {
+					let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
+					debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
+					self.gap_sync = Some(GapSync {
+						best_queued_number: start - One::one(),
+						target: end,
+						blocks: BlockCollection::new(),
+					});
+				}
+			}
+
+			#[cfg(not(feature = "bft-warp"))]
+			{
+				let old_gap = self.gap_sync.take().map(|g| (g.best_queued_number, g.target));
+				debug!(target: LOG_TARGET, "Starting gap sync #{start} - #{end} (old gap best and target: {old_gap:?})");
+				self.gap_sync = Some(GapSync {
+					best_queued_number: start - One::one(),
+					target: end,
+					blocks: BlockCollection::new(),
+				});
+			}
 		}
 		trace!(
 			target: LOG_TARGET,
@@ -1772,6 +1801,7 @@ where
 					import_existing: self.import_existing,
 					skip_execution: self.skip_execution(),
 					state: None,
+					from_bft_warp: false,
 				}
 			})
 			.collect()
@@ -2020,6 +2050,7 @@ where
 					import_existing: true,
 					skip_execution: self.skip_execution(),
 					state: Some(state),
+					from_bft_warp: false,
 				};
 				debug!(target: LOG_TARGET, "State download is complete. Import is queued");
 				self.actions.push(SyncingAction::ImportBlocks { origin, blocks: vec![block] });

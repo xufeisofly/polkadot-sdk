@@ -867,7 +867,8 @@ mod tests {
 
 	const TEST_DATA: &[(&[u8], &[u8])] =
 		&[(b"key1", b"val1"), (b"key2", &[2; 64]), (b"key3", b"val3"), (b"key4", &[4; 64])];
-	const CACHE_SIZE_RAW: usize = 1024 * 10;
+	// Rocky: old value is 1024 * 10 to avoid warning log: trie-cache: Timeout while trying to acquire a write lock for the shared trie cache
+	const CACHE_SIZE_RAW: usize = 1024 * 10 * 5; 
 	const CACHE_SIZE: CacheSize = CacheSize::new(CACHE_SIZE_RAW);
 
 	fn create_trie() -> (MemoryDB, TrieHash<Layout>) {

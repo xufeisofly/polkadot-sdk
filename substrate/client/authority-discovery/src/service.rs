@@ -92,4 +92,18 @@ impl Service {
 
 		rx.await.ok().flatten()
 	}
+
+	/// Manually trigger publishing of our own addresses on the DHT.
+	pub async fn publish_ext_addresses(
+		&mut self,
+		only_if_change: bool,
+	) -> bool {
+		let (tx, rx) = oneshot::channel();
+
+		let _ = self.to_worker
+			.send(ServicetoWorkerMsg::PublishExtAddresses(only_if_change, tx))
+			.await;
+
+		rx.await.unwrap_or(false)
+	}
 }
