@@ -264,6 +264,7 @@ pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
 		block: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()>;
 
 	/// Finalize a block.
@@ -284,6 +285,7 @@ pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
 		block: Block::Hash,
 		justification: Option<Justification>,
 		notify: bool,
+		no_recursive: bool,
 	) -> sp_blockchain::Result<()>;
 }
 

@@ -522,6 +522,7 @@ where
 				skip_execution: false,
 				state: None,
 				indexed_body: None,
+				from_bft_warp: false,
 			});
 
 			if let Some(waiting) = self.waiting_for_parent.remove(&block_hash) {
