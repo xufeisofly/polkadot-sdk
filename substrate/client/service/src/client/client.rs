@@ -1001,22 +1001,29 @@ where
 
 		if notify {
 			let finalized = vec![hash];
-			// The stale heads are the leaves that will be displaced after the
-			// block is finalized.
-			let stale_heads = self
-				.backend
-				.blockchain()
-				.displaced_leaves_after_finalizing(hash, block_number)?
-				.hashes()
-				.collect();
-
+			
 			let header = self
 				.backend
 				.blockchain()
 				.header(hash)?
 				.expect("Block to finalize expected to be onchain; qed");
+			let block_number = *header.number();
 
-			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_heads });
+			// The stale blocks that will be displaced after the block is finalized.
+			let mut stale_blocks = Vec::new();
+
+			let stale_heads = self.backend.blockchain().displaced_leaves_after_finalizing(
+				hash,
+				block_number,
+				*header.parent_hash(),
+			)?;
+
+			stale_blocks.extend(stale_heads.displaced_blocks.into_iter().map(|b| StaleBlock {
+				hash: b,
+				is_head: stale_heads.displaced_leaves.iter().any(|(_, h)| *h == b),
+			}));
+
+			operation.notify_finalized = Some(FinalizeSummary { header, finalized, stale_blocks });
 		}
 
 		Ok(())

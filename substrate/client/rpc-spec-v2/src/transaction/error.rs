@@ -67,12 +67,13 @@ impl<Hash> From<Error> for TransactionEvent<Hash> {
 			Error::Pool(PoolError::AlreadyImported(_)) => {
 				TransactionEvent::Invalid(TransactionError {
 					error: "Transaction is already imported".into(),
-				}),
+				})
+			},
 			Error::Pool(PoolError::RecentlyPruned(_)) =>
 				TransactionEvent::Invalid(TransactionError {
 					error: "Transaction is recently pruned in block".into(),
 				}),
-			Error::Pool(PoolError::TooLowPriority { old, new }) =>
+			Error::Pool(PoolError::TooLowPriority { old, new }) => {
 				TransactionEvent::Invalid(TransactionError {
 					error: format!(
 						"The priority of the transaction is too low (pool {} > current {})",
