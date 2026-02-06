@@ -991,7 +991,7 @@ where
 			operation.op.mark_head(hash)?;
 		}
 
-		operation.op.mark_finalized(hash, None)?;
+		operation.op.mark_finalized(hash, justification)?;
 
 		if notify {
 			let finalized = vec![hash];
