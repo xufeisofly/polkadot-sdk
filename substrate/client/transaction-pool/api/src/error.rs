@@ -48,6 +48,9 @@ pub enum Error {
 	#[error("[{0:?}] Already imported")]
 	AlreadyImported(Box<dyn std::any::Any + Send + Sync>),
 
+	#[error("[{0:?}] Recently pruned")]
+	RecentlyPruned(Box<dyn std::any::Any + Send + Sync>),
+
 	#[error("Too low priority ({} > {})", old, new)]
 	TooLowPriority {
 		/// Transaction already in the pool.

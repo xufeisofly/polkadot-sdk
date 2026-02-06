@@ -91,6 +91,9 @@ pub struct PolkadotSyncingStrategy<B: BlockT, Client> {
 	/// Connected peers and their best blocks used to seed a new strategy when switching to it in
 	/// `PolkadotSyncingStrategy::proceed_to_next`.
 	peer_best_blocks: HashMap<PeerId, (B::Hash, NumberFor<B>)>,
+
+	/// Rocky: store the warp target
+	warp_target: Option<(B::Hash, NumberFor<B>)>,
 }
 
 impl<B: BlockT, Client> SyncingStrategy<B> for PolkadotSyncingStrategy<B, Client>
@@ -375,6 +378,7 @@ where
 				state: None,
 				chain_sync: None,
 				peer_best_blocks: Default::default(),
+				warp_target: None,
 			})
 		} else {
 			let chain_sync = ChainSync::new(
@@ -386,6 +390,7 @@ where
 				config.block_downloader.clone(),
 				config.metrics_registry.as_ref(),
 				std::iter::empty(),
+				None,
 			)?;
 			Ok(Self {
 				config,
@@ -394,6 +399,7 @@ where
 				state: None,
 				chain_sync: Some(chain_sync),
 				peer_best_blocks: Default::default(),
+				warp_target: None,
 			})
 		}
 	}
@@ -408,6 +414,10 @@ where
 						target: LOG_TARGET,
 						"Warp sync is complete, continuing with state sync."
 					);
+					let target_hash = res.target_header.hash();
+					let target_number = *res.target_header.number();
+					self.warp_target = Some((target_hash, target_number));
+
 					let state_sync = StateStrategy::new(
 						self.client.clone(),
 						res.target_header,
@@ -422,6 +432,7 @@ where
 
 					self.warp = None;
 					self.state = Some(state_sync);
+					
 					Ok(())
 				},
 				None => {
@@ -440,6 +451,7 @@ where
 						self.peer_best_blocks.iter().map(|(peer_id, (best_hash, best_number))| {
 							(*peer_id, *best_hash, *best_number)
 						}),
+						None,
 					) {
 						Ok(chain_sync) => chain_sync,
 						Err(e) => {
@@ -459,6 +471,7 @@ where
 			} else {
 				error!(target: LOG_TARGET, "State sync failed. Falling back to full sync.");
 			}
+
 			let chain_sync = match ChainSync::new(
 				chain_sync_mode(self.config.mode),
 				self.client.clone(),
@@ -470,6 +483,7 @@ where
 				self.peer_best_blocks.iter().map(|(peer_id, (best_hash, best_number))| {
 					(*peer_id, *best_hash, *best_number)
 				}),
+				self.warp_target.clone(),
 			) {
 				Ok(chain_sync) => chain_sync,
 				Err(e) => {

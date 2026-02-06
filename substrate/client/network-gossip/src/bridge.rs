@@ -172,6 +172,19 @@ impl<B: BlockT> GossipEngine<B> {
 		}
 	}
 
+	pub async fn send_message_async(
+		&mut self,
+		who: Vec<PeerId>,
+		data: Vec<u8>,
+	) -> Result<(), sc_network::error::Error> {
+		for who in &who {
+			self.state_machine
+				.send_message_async(&mut self.notification_service, who, data.clone())
+				.await?;
+		}
+		Ok(())
+	}
+
 	/// Notify everyone we're connected to that we have the given block.
 	///
 	/// Note: this method isn't strictly related to gossiping and should eventually be moved

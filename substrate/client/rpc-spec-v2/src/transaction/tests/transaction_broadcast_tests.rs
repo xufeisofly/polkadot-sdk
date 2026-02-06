@@ -311,6 +311,7 @@ async fn tx_broadcast_resubmits_invalid_tx() {
 		reject_future_transactions: false,
 		// This ensures that a transaction is not banned.
 		ban_time: std::time::Duration::ZERO,
+		ban_expected_size: 8192,
 	};
 
 	let (api, pool, client_mock, tx_api, mut exec_middleware, mut pool_middleware) =
@@ -432,6 +433,7 @@ async fn tx_broadcast_resubmits_dropped_tx() {
 		reject_future_transactions: false,
 		// This ensures that a transaction is not banned.
 		ban_time: std::time::Duration::ZERO,
+		ban_expected_size: 8192,
 	};
 
 	let (api, pool, client_mock, tx_api, _, mut pool_middleware) =

@@ -60,7 +60,8 @@ use std::{
 /// Maximum blocks per response.
 pub(crate) const MAX_BLOCKS_IN_RESPONSE: usize = 128;
 
-const MAX_NUMBER_OF_SAME_REQUESTS_PER_PEER: usize = 2;
+const MAX_BODY_BYTES: usize = 8 * 1024 * 1024;
+const MAX_NUMBER_OF_SAME_REQUESTS_PER_PEER: usize = 3; // Rocky: old value is 2
 
 mod rep {
 	use sc_network::ReputationChange as Rep;
