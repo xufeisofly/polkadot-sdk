@@ -121,7 +121,7 @@ use frame_support::{
 	defensive_assert,
 	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, PostDispatchInfo},
 	migrations::MultiStepMigrator,
-	pallet_prelude::InvalidTransaction,
+	pallet_prelude::{InvalidTransaction, ValidTransaction},
 	traits::{
 		BeforeAllRuntimeMigrations, ExecuteBlock, Get, IsInherent, OffchainWorker, OnFinalize,
 		OnIdle, OnInitialize, OnPoll, OnRuntimeUpgrade, PostInherents, PostTransactions,

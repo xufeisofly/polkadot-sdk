@@ -543,9 +543,12 @@ where
 					TransactionImport::NewGood
 				},
 				Err(e) => match e.into_pool_error() {
-					Ok(sc_transaction_pool_api::error::Error::AlreadyImported(_)) => {
-						TransactionImport::KnownGood
-					},
+					Ok(sc_transaction_pool_api::error::Error::AlreadyImported(_)) =>
+						TransactionImport::KnownGood,
+					Ok(sc_transaction_pool_api::error::Error::RecentlyPruned(_)) =>
+						TransactionImport::KnownGood,
+					Ok(sc_transaction_pool_api::error::Error::TemporarilyBanned) =>
+						TransactionImport::TemporarilyBanned,
 					Ok(_) => TransactionImport::Bad,
 					Err(_) => {
 						// it is not bad at least, just some internal node logic error, so peer is

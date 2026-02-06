@@ -93,6 +93,10 @@ pub struct IncomingBlock<B: BlockT> {
 	pub import_existing: bool,
 	/// Do not compute new state, but rather set it to the given set.
 	pub state: Option<ImportedState<B>>,
+	/// Rocky: Allow importing the block even if the parent block is missing.
+	/// This is used for warp sync where we import block with warp proofs
+	/// but without the parent block
+	pub from_bft_warp: bool,
 }
 
 /// Verify a justification of a block
@@ -343,7 +347,7 @@ pub(crate) async fn verify_single_block_metered<B: BlockT, V: Verifier<B>>(
 				parent_hash,
 				allow_missing_state: block.allow_missing_state,
 				import_existing: block.import_existing,
-				allow_missing_parent: block.state.is_some(),
+				allow_missing_parent: block.from_bft_warp || block.state.is_some(), // Rocky: allow missing parent if we have state or is set by warp sync
 			})
 			.await,
 	)? {
@@ -362,6 +366,7 @@ pub(crate) async fn verify_single_block_metered<B: BlockT, V: Verifier<B>>(
 	import_block.post_hash = Some(hash);
 	import_block.import_existing = block.import_existing;
 	import_block.indexed_body = block.indexed_body;
+	import_block.allow_missing_parent = block.from_bft_warp;
 
 	if let Some(state) = block.state {
 		let changes = crate::block_import::StorageChanges::Import(state);

@@ -376,6 +376,8 @@ where
 				},
 			};
 
+			debug!(target: LOG_TARGET, "#===# Received warp block response from peer {:?}", peer_id);
+
 			self.on_block_response(*peer_id, request, blocks);
 		} else {
 			let Ok(response) = response.downcast::<Vec<u8>>() else {
@@ -383,6 +385,8 @@ where
 				debug_assert!(false);
 				return;
 			};
+
+			debug!(target: LOG_TARGET, "#===# Received warp proof response from peer {:?}", peer_id);
 
 			self.on_warp_proof_response(peer_id, EncodedProof(*response));
 		}
@@ -417,6 +421,8 @@ where
 					// Shouldn't already exist in the database.
 					import_existing: false,
 					state: None,
+					// Rocky: we are in warp sync for PC-BFT, so we don't need a parent
+					from_bft_warp: true,
 				}
 			};
 
@@ -1343,6 +1349,7 @@ mod test {
 				skip_execution: true,
 				import_existing: false,
 				state: None,
+				from_bft_warp: true,
 			}
 		);
 		assert!(matches!(warp_sync.phase, Phase::WarpProof { .. }));
@@ -1423,6 +1430,7 @@ mod test {
 				skip_execution: true,
 				import_existing: false,
 				state: None,
+				from_bft_warp: true,
 			}
 		);
 		assert!(
