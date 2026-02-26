@@ -508,6 +508,24 @@ impl NetworkPeers for Litep2pNetworkService {
 		// the channel can only be closed if `Peerset` no longer exists
 		rx.await.map_err(|_| ())
 	}
+
+	/// Get the list of reserved peers for `protocol`.
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running.
+	async fn protocol_reserved_peers(&self, protocol: ProtocolName) -> Result<Vec<PeerId>, ()> {
+		let Some(handle) = self.peerset_handles.get(&protocol) else {
+			return Err(())
+		};
+		let (tx, rx) = oneshot::channel();
+
+		handle
+			.tx
+			.unbounded_send(PeersetCommand::GetReservedPeers { tx })
+			.map_err(|_| ())?;
+
+		// the channel can only be closed if `Peerset` no longer exists
+		rx.await.map_err(|_| ())
+	}
 }
 
 impl NetworkEventStream for Litep2pNetworkService {
