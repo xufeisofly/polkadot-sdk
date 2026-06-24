@@ -658,9 +658,6 @@ pub struct NetworkConfiguration {
 	/// Initial syncing mode.
 	pub sync_mode: SyncMode,
 
-	/// trusted block validator ids for warp sync
-	pub trusted_block_validators_warp_sync: Vec<String>,
-
 	/// True if Kademlia random discovery should be enabled.
 	///
 	/// If true, the node will automatically randomly walk the DHT in order to find new peers.
@@ -711,7 +708,6 @@ impl NetworkConfiguration {
 			max_blocks_per_request: 64,
 			min_peers_to_start_warp_sync: None,
 			sync_mode: SyncMode::Full,
-			trusted_block_validators_warp_sync: Vec::new(),
 			enable_dht_random_walk: true,
 			allow_non_globals_in_dht: false,
 			kademlia_disjoint_query_paths: false,
