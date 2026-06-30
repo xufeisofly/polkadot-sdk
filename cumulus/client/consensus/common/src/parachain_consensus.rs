@@ -62,7 +62,7 @@ fn handle_new_finalized_head<P, Block, B>(
 			block_hash = ?hash,
 			"Attempting to finalize header.",
 		);
-		if let Err(e) = parachain.finalize_block(hash, None, true, false) {
+		if let Err(e) = parachain.finalize_block(hash, None, true) {
 			match e {
 				ClientError::UnknownBlock(_) => tracing::debug!(
 					target: LOG_TARGET,
@@ -168,7 +168,7 @@ async fn follow_finalized_head<P, Block, B>(
 								"Setting newly imported block as finalized.",
 							);
 
-							if let Err(e) = parachain.finalize_block(imported_block.hash, None, true, false) {
+							if let Err(e) = parachain.finalize_block(imported_block.hash, None, true) {
 								match e {
 									ClientError::UnknownBlock(_) => tracing::debug!(
 										target: LOG_TARGET,

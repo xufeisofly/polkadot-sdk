@@ -243,10 +243,6 @@ pub struct BlockImportParams<Block: BlockT> {
 	pub create_gap: bool,
 	/// Cached full header hash (with post-digests applied).
 	pub post_hash: Option<Block::Hash>,
-	/// Rocky: Allow importing the block even if the parent block is missing.
-	/// This is used for warp sync where we import block with warp proofs
-	/// but without the parent block
-	pub allow_missing_parent: bool,
 }
 
 impl<Block: BlockT> BlockImportParams<Block> {
@@ -267,7 +263,6 @@ impl<Block: BlockT> BlockImportParams<Block> {
 			import_existing: false,
 			create_gap: true,
 			post_hash: None,
-			allow_missing_parent: false, // Rocky: default to false
 		}
 	}
 

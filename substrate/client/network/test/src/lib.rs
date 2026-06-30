@@ -207,7 +207,7 @@ impl PeersClient {
 		justification: Option<Justification>,
 		notify: bool,
 	) -> ClientResult<()> {
-		self.client.finalize_block(hash, justification, notify, false)
+		self.client.finalize_block(hash, justification, notify)
 	}
 }
 

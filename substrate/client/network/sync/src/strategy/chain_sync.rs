@@ -1205,7 +1205,6 @@ where
 										import_existing: self.import_existing,
 										skip_execution: true,
 										state: None,
-										from_bft_warp: false,
 									}
 								})
 								.collect();
@@ -1245,7 +1244,6 @@ where
 									import_existing: self.import_existing,
 									skip_execution: self.skip_execution(),
 									state: None,
-									from_bft_warp: false,
 								}
 							})
 							.collect()
@@ -1388,7 +1386,6 @@ where
 							import_existing: false,
 							skip_execution: true,
 							state: None,
-							from_bft_warp: false,
 						}
 					})
 					.collect()
@@ -1775,7 +1772,6 @@ where
 					import_existing: self.import_existing,
 					skip_execution: self.skip_execution(),
 					state: None,
-					from_bft_warp: false,
 				}
 			})
 			.collect()
@@ -2024,7 +2020,6 @@ where
 					import_existing: true,
 					skip_execution: self.skip_execution(),
 					state: Some(state),
-					from_bft_warp: false,
 				};
 				debug!(target: LOG_TARGET, "State download is complete. Import is queued");
 				self.actions.push(SyncingAction::ImportBlocks { origin, blocks: vec![block] });
