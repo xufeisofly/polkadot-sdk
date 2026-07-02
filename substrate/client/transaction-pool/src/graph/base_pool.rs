@@ -23,6 +23,7 @@
 use std::{cmp::Ordering, collections::HashSet, fmt, hash, sync::Arc, time::Instant};
 
 use crate::LOG_TARGET;
+use futures::future;
 use sc_transaction_pool_api::{error, InPoolTransaction, PoolStatus};
 use serde::Serialize;
 use sp_core::hexdisplay::HexDisplay;
@@ -233,7 +234,7 @@ where
 }
 
 /// Store last pruned tags for given number of invocations.
-const RECENTLY_PRUNED_TAGS: usize = 2;
+const RECENTLY_PRUNED_TAGS: usize = 2; // Rocky: old value is 2;
 
 /// Transaction pool.
 ///
@@ -494,6 +495,13 @@ impl<Hash: hash::Hash + Member + Serialize, Ex: std::fmt::Debug> BasePool<Hash, 
 				});
 
 			if let Some(worst) = worst {
+				trace!(
+					target: LOG_TARGET,
+					tx_hash = ?worst.transaction.hash,
+					ready_len = self.ready.len(),
+					ready_bytes = self.ready.bytes(),
+					"Enforcing ready limit, removing worst transaction"
+				);
 				removed.append(&mut self.remove_subtree(&[worst.transaction.hash.clone()]))
 			} else {
 				break
@@ -525,6 +533,13 @@ impl<Hash: hash::Hash + Member + Serialize, Ex: std::fmt::Debug> BasePool<Hash, 
 			});
 
 			if let Some(worst) = worst {
+				trace!(
+					target: LOG_TARGET,
+					tx_hash = ?worst.transaction.hash,
+					future_len = self.future.len(),
+					future_bytes = self.future.bytes(),
+					"Enforcing future limit, removing worst transaction"
+				);
 				removed.append(&mut self.remove_subtree(&[worst.transaction.hash.clone()]))
 			} else {
 				break

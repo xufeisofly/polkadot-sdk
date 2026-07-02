@@ -418,6 +418,7 @@ where
 
 					self.warp = None;
 					self.state = Some(state_sync);
+					
 					Ok(())
 				},
 				None => {
@@ -455,6 +456,7 @@ where
 			} else {
 				error!(target: LOG_TARGET, "State sync failed. Falling back to full sync.");
 			}
+
 			let chain_sync = match ChainSync::new(
 				chain_sync_mode(self.config.mode),
 				self.client.clone(),

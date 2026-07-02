@@ -719,6 +719,13 @@ mod tests {
 		async fn reserved_peers(&self) -> Result<Vec<PeerId>, ()> {
 			unimplemented!();
 		}
+
+		async fn protocol_reserved_peers(
+			&self,
+			_: sc_network::ProtocolName,
+		) -> Result<Vec<PeerId>, ()> {
+			unimplemented!();
+		}
 	}
 
 	struct TestSync {}

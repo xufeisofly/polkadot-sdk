@@ -1177,6 +1177,25 @@ where
 			.map(|peers| peers.into_iter().map(From::from).collect())
 			.map_err(|_| ())
 	}
+
+	/// Get the list of reserved peers for `protocol`.
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running.
+	async fn protocol_reserved_peers(
+		&self,
+		protocol: ProtocolName,
+	) -> Result<Vec<sc_network_types::PeerId>, ()> {
+		let Some(set_id) = self.notification_protocol_ids.get(&protocol) else {
+			return Err(())
+		};
+
+		let (tx, rx) = oneshot::channel();
+		self.protocol_handles[usize::from(*set_id)].reserved_peers(tx);
+
+		rx.await
+			.map(|peers| peers.into_iter().map(From::from).collect())
+			.map_err(|_| ())
+	}
 }
 
 impl<B, H> NetworkEventStream for NetworkService<B, H>

@@ -378,6 +378,8 @@ where
 				},
 			};
 
+			debug!(target: LOG_TARGET, "#===# Received warp block response from peer {:?}", peer_id);
+
 			self.on_block_response(*peer_id, request, blocks);
 		} else {
 			let Ok(response) = response.downcast::<Vec<u8>>() else {
@@ -385,6 +387,8 @@ where
 				debug_assert!(false);
 				return;
 			};
+
+			debug!(target: LOG_TARGET, "#===# Received warp proof response from peer {:?}", peer_id);
 
 			self.on_warp_proof_response(peer_id, EncodedProof(*response));
 		}

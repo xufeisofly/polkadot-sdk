@@ -152,6 +152,67 @@ where
 	}
 }
 
+async fn propagate_async<'a, B: BlockT, I>(
+	notification_service: &mut Box<dyn NotificationService>,
+	protocol: ProtocolName,
+	messages: I,
+	intent: MessageIntent,
+	peers: &mut HashMap<PeerId, PeerConsensus<B::Hash>>,
+	validator: &Arc<dyn Validator<B>>,
+)
+where
+	I: Clone + IntoIterator<Item = (&'a B::Hash, &'a B::Hash, &'a Vec<u8>)>,
+{
+	let mut message_allowed = validator.message_allowed();
+
+	for (id, ref mut peer) in peers.iter_mut() {
+		for (message_hash, topic, message) in messages.clone() {
+			let intent = match intent {
+				MessageIntent::Broadcast { .. } =>
+					if peer.known_messages.contains(message_hash) {
+						continue
+					} else {
+						MessageIntent::Broadcast
+					},
+				MessageIntent::PeriodicRebroadcast => {
+					if peer.known_messages.contains(message_hash) {
+						MessageIntent::PeriodicRebroadcast
+					} else {
+						// peer doesn't know message, so the logic should treat it as an
+						// initial broadcast.
+						MessageIntent::Broadcast
+					}
+				},
+				other => other,
+			};
+
+			if !message_allowed(id, intent, topic, message) {
+				continue
+			}
+
+			peer.known_messages.insert(*message_hash);
+
+			tracing::trace!(
+				target: "gossip",
+				to = %id,
+				%protocol,
+				?message,
+				"Propagating message asynchronously",
+			);
+			let ret = notification_service.send_async_notification(id, message.clone()).await;
+			if let Err(e) = ret {
+				tracing::error!(
+					target: "gossip",
+					to = %id,
+					%protocol,
+					error = %e,
+					"Failed to propagate message asynchronously",
+				);
+			}
+		}
+	}
+}
+
 /// Consensus network protocol handler. Manages statements and candidate requests.
 pub struct ConsensusGossip<B: BlockT> {
 	peers: HashMap<PeerId, PeerConsensus<B::Hash>>,
@@ -511,6 +572,33 @@ impl<B: BlockT> ConsensusGossip<B> {
 		peer.known_messages.insert(message_hash);
 		notification_service.send_sync_notification(who, message)
 	}
+
+	/// Send addressed message to a peer. The message is not kept or multicast
+	/// later on.
+	pub async fn send_message_async(
+		&mut self,
+		notification_service: &mut Box<dyn NotificationService>,
+		who: &PeerId,
+		message: Vec<u8>,
+	) -> Result<(), sc_network::error::Error> {
+		let peer = match self.peers.get_mut(who) {
+			None => return Err(sc_network::error::Error::PeerDoesntExist(*who)),
+			Some(peer) => peer,
+		};
+
+		let message_hash = HashingFor::<B>::hash(&message);
+
+		tracing::trace!(
+			target: "gossip",
+			to = %who,
+			protocol = %self.protocol,
+			?message,
+			"Async sending direct message",
+		);
+
+		peer.known_messages.insert(message_hash);
+		notification_service.send_async_notification(who, message).await
+	}
 }
 
 struct Metrics {
@@ -682,6 +770,10 @@ mod tests {
 		}
 
 		async fn reserved_peers(&self) -> Result<Vec<PeerId>, ()> {
+			unimplemented!();
+		}
+
+		async fn protocol_reserved_peers(&self, _protocol: ProtocolName) -> Result<Vec<PeerId>, ()> {
 			unimplemented!();
 		}
 	}

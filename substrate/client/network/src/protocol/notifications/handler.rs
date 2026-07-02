@@ -81,6 +81,7 @@ use libp2p::{
 };
 
 use parking_lot::{Mutex, RwLock};
+use serde_json::error;
 use std::{
 	collections::VecDeque,
 	mem,
@@ -95,10 +96,10 @@ const LOG_TARGET: &str = "sub-libp2p::notification::handler";
 
 /// Number of pending notifications in asynchronous contexts.
 /// See [`NotificationsSink::reserve_notification`] for context.
-pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8;
+pub(crate) const ASYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 8; // Rocky: useless
 
 /// Number of pending notifications in synchronous contexts.
-const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 2048;
+const SYNC_NOTIFICATIONS_BUFFER_SIZE: usize = 2048; // Rocky: useless
 
 /// Maximum duration to open a substream and receive the handshake message. After that, we
 /// consider that we failed to open the substream.
@@ -454,6 +455,13 @@ impl NotificationsSink {
 			let result = tx.try_send(NotificationsSinkMessage::Notification { message });
 
 			if result.is_err() {
+				log::error!(
+					target: LOG_TARGET,
+					"#===# NotificationsSink: sync channel full, dropping further notifications to \
+					peer {:?} and closing connection because of {}.",
+					self.inner.peer_id,
+					result.err().unwrap(),
+				);
 				// Cloning the `mpsc::Sender` guarantees the allocation of an extra spot in the
 				// buffer, and therefore `try_send` will succeed.
 				let _result2 = tx.clone().try_send(NotificationsSinkMessage::ForceClose);
@@ -765,6 +773,11 @@ impl ConnectionHandler for NotifsHandler {
 			if let Some(keep_alive_timeout_future) = maybe_keep_alive_timeout_future {
 				if keep_alive_timeout_future.poll_unpin(cx).is_ready() {
 					maybe_keep_alive_timeout_future.take();
+					log::warn!(
+						target: LOG_TARGET,
+						"#===# Notifications handler keep-alive timeout expired for peer {:?}",
+						self.peer_id,
+					);
 					self.keep_alive = false;
 				}
 			}
@@ -838,6 +851,14 @@ impl ConnectionHandler for NotifsHandler {
 						Poll::Ready(Err(error)) => {
 							*out_substream = None;
 
+							log::warn!(
+								target: LOG_TARGET,
+								"#===# Notifications outbound substream closed for peer {:?} \
+								on protocol {:?}: {error:?}",
+								self.peer_id,
+								self.protocols[protocol_index].config.name,
+							);
+
 							let reason = match error {
 								NotificationsOutError::Io(_) | NotificationsOutError::Closed =>
 									CloseReason::RemoteRequest,
@@ -884,7 +905,14 @@ impl ConnectionHandler for NotifsHandler {
 					match NotificationsInSubstream::poll_process(Pin::new(in_substream), cx) {
 						Poll::Pending => {},
 						Poll::Ready(Ok(())) => {},
-						Poll::Ready(Err(_)) => {
+						Poll::Ready(Err(e)) => {
+							log::warn!(
+								target: LOG_TARGET,
+								"#===# Notifications inbound substream closed for peer {:?} \
+								on protocol, error: {:?}",
+								self.peer_id,
+								e
+							);
 							self.protocols[protocol_index].state =
 								State::Closed { pending_opening: *pending_opening };
 							return Poll::Ready(ConnectionHandlerEvent::NotifyBehaviour(

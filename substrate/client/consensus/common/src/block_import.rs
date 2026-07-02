@@ -153,6 +153,17 @@ pub enum StateAction<Block: BlockT> {
 	Skip,
 }
 
+impl<B: BlockT> std::fmt::Debug for StateAction<B> {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			StateAction::ApplyChanges(_) => fmt.debug_tuple("ApplyChanges").finish(),
+			StateAction::Execute => fmt.debug_tuple("Execute").finish(),
+			StateAction::ExecuteIfPossible => fmt.debug_tuple("ExecuteIfPossible").finish(),
+			StateAction::Skip => fmt.debug_tuple("Skip").finish(),
+		}
+	}
+}
+
 impl<Block: BlockT> StateAction<Block> {
 	/// Check if execution checks that require runtime calls should be skipped.
 	pub fn skip_execution_checks(&self) -> bool {

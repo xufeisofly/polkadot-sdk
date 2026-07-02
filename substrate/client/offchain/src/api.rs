@@ -307,6 +307,10 @@ mod tests {
 		async fn reserved_peers(&self) -> Result<Vec<PeerId>, ()> {
 			unimplemented!();
 		}
+
+		async fn protocol_reserved_peers(&self, _protocol: ProtocolName) -> Result<Vec<PeerId>, ()> {
+			unimplemented!();
+		}
 	}
 
 	impl NetworkStateInfo for TestNetwork {

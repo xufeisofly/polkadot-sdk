@@ -20,6 +20,7 @@ array-bytes = { workspace = true, default-features = true }
 codec = { features = ["derive"], workspace = true, default-features = true }
 futures = { workspace = true }
 log = { workspace = true, default-features = true }
+
 prometheus-endpoint.default-features = true
 prometheus-endpoint.workspace = true
 sc-network.default-features = true
@@ -36,3 +37,8 @@ sp-consensus.default-features = true
 sp-consensus.workspace = true
 sp-runtime.default-features = true
 sp-runtime.workspace = true
+
+[features]
+default = []
+txpool-auth-propagate-timeout-disable = []
+txpool-async-propagate = []

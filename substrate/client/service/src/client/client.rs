@@ -807,8 +807,9 @@ where
 				StateAction::ApplyChanges(sc_consensus::StorageChanges::Changes(_)),
 			) => return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),
 			(_, StateAction::ApplyChanges(changes)) => (true, Some(changes)),
-			(BlockStatus::Unknown, _) =>
-				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent)),
+			(BlockStatus::Unknown, _) => {
+				return Ok(PrepareStorageChangesResult::Discard(ImportResult::UnknownParent));
+			},
 			(_, StateAction::Skip) => (false, None),
 			(BlockStatus::InChainPruned, StateAction::Execute) =>
 				return Ok(PrepareStorageChangesResult::Discard(ImportResult::MissingState)),

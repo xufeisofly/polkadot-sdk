@@ -123,4 +123,9 @@ runtime-benchmarks = [
 	"sc-client-db/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
+
 jemalloc-allocator = ["sc-client-db/jemalloc-allocator"]
+txpool-auth-propagate-disable = []
+txpool-auth-propagate-timeout-disable = ["sc-network-transactions/txpool-auth-propagate-timeout-disable"]
+txpool-async-propagate = ["sc-network-transactions/txpool-async-propagate"]
+
