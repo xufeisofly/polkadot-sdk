@@ -121,7 +121,7 @@ use frame_support::{
 	defensive_assert,
 	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, PostDispatchInfo},
 	migrations::MultiStepMigrator,
-	pallet_prelude::InvalidTransaction,
+	pallet_prelude::{InvalidTransaction, ValidTransaction},
 	traits::{
 		BeforeAllRuntimeMigrations, ExecuteBlock, Get, IsInherent, OffchainWorker, OnFinalize,
 		OnIdle, OnInitialize, OnPoll, OnRuntimeUpgrade, PostInherents, PostTransactions,
@@ -684,9 +684,9 @@ where
 		// Check that `parent_hash` is correct.
 		let n = *header.number();
 		assert!(
-			n > BlockNumberFor::<System>::zero() &&
-				<frame_system::Pallet<System>>::block_hash(n - BlockNumberFor::<System>::one()) ==
-					*header.parent_hash(),
+			n > BlockNumberFor::<System>::zero()
+				&& <frame_system::Pallet<System>>::block_hash(n - BlockNumberFor::<System>::one())
+					== *header.parent_hash(),
 			"Parent hash should be valid.",
 		);
 	}

@@ -854,8 +854,8 @@ where
 						rate_limiter: PeerRateLimiter::new(
 							self.statements_per_second,
 							NonZeroU32::new(
-								self.statements_per_second.get() *
-									config::STATEMENTS_BURST_COEFFICIENT,
+								self.statements_per_second.get()
+									* config::STATEMENTS_BURST_COEFFICIENT,
 							)
 							.expect("burst capacity is nonzero"),
 						),
@@ -1339,6 +1339,13 @@ mod tests {
 		}
 
 		async fn reserved_peers(&self) -> Result<Vec<PeerId>, ()> {
+			unimplemented!();
+		}
+
+		async fn protocol_reserved_peers(
+			&self,
+			_: sc_network::ProtocolName,
+		) -> Result<Vec<PeerId>, ()> {
 			unimplemented!();
 		}
 	}

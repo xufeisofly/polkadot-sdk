@@ -1178,6 +1178,23 @@ where
 			.map(|peers| peers.into_iter().map(From::from).collect())
 			.map_err(|_| ())
 	}
+
+	/// Get the list of reserved peers for `protocol`.
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running.
+	async fn protocol_reserved_peers(
+		&self,
+		protocol: ProtocolName,
+	) -> Result<Vec<sc_network_types::PeerId>, ()> {
+		let Some(set_id) = self.notification_protocol_ids.get(&protocol) else { return Err(()) };
+
+		let (tx, rx) = oneshot::channel();
+		self.protocol_handles[usize::from(*set_id)].reserved_peers(tx);
+
+		rx.await
+			.map(|peers| peers.into_iter().map(From::from).collect())
+			.map_err(|_| ())
+	}
 }
 
 impl<B, H> NetworkEventStream for NetworkService<B, H>
@@ -1828,9 +1845,9 @@ where
 						DialError::LocalPeerId { .. } => Some("local-peer-id"),
 						DialError::WrongPeerId { .. } => Some("invalid-peer-id"),
 						DialError::Transport(_) => Some("transport-error"),
-						DialError::NoAddresses |
-						DialError::DialPeerConditionFalse(_) |
-						DialError::Aborted => None, // ignore them
+						DialError::NoAddresses
+						| DialError::DialPeerConditionFalse(_)
+						| DialError::Aborted => None, // ignore them
 					};
 					if let Some(reason) = reason {
 						metrics.pending_connections_errors_total.with_label_values(&[reason]).inc();

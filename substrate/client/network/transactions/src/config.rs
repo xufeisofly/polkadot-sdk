@@ -25,18 +25,18 @@ use sp_runtime::traits::Block as BlockT;
 use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc, time};
 
 /// Interval at which we propagate transactions;
-pub(crate) const PROPAGATE_TIMEOUT: time::Duration = time::Duration::from_millis(2900);
+pub(crate) const PROPAGATE_TIMEOUT: time::Duration = time::Duration::from_millis(2900); // Rocky: old value is 2900ms
 
 /// Maximum number of known transaction hashes to keep for a peer.
 ///
 /// This should be approx. 2 blocks full of transactions for the network to function properly.
-pub(crate) const MAX_KNOWN_TRANSACTIONS: usize = 10240; // ~300kb per peer + overhead.
+pub(crate) const MAX_KNOWN_TRANSACTIONS: usize = 10240 * 2; // Rocky: old value is 10240  ~300kb per peer + overhead.
 
 /// Maximum allowed size for a transactions notification.
 pub(crate) const MAX_TRANSACTIONS_SIZE: u64 = MAX_RESPONSE_SIZE;
 
 /// Maximum number of transaction validation request we keep at any moment.
-pub(crate) const MAX_PENDING_TRANSACTIONS: usize = 8192;
+pub(crate) const MAX_PENDING_TRANSACTIONS: usize = 8192 * 2; // Rocky: old value is 8192
 
 /// Result of the transaction import.
 #[derive(Clone, Copy, Debug)]
@@ -45,6 +45,8 @@ pub enum TransactionImport {
 	KnownGood,
 	/// Transaction is good and not yet known.
 	NewGood,
+	/// Transaction is temporarily banned.
+	TemporarilyBanned,
 	/// Transaction is invalid.
 	Bad,
 	/// Transaction import was not performed.

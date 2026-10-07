@@ -567,6 +567,20 @@ where
 		sc_transaction_pool::notification_future(client.clone(), transaction_pool.clone()),
 	);
 
+	#[cfg(feature = "txpool-auth-propagate-disable")]
+	if !config.role.is_authority() {
+		spawn_handle.spawn(
+			"on-transaction-imported",
+			Some("transaction-pool"),
+			propagate_transaction_notifications(
+				transaction_pool.clone(),
+				tx_handler_controller,
+				telemetry.clone(),
+			),
+		);
+	}
+
+	#[cfg(not(feature = "txpool-auth-propagate-disable"))]
 	spawn_handle.spawn(
 		"on-transaction-imported",
 		Some("transaction-pool"),
@@ -896,8 +910,8 @@ where
 	// An archive node that can respond to the `archive` RPC-v2 queries is a node with:
 	// - state pruning in archive mode: The storage of blocks is kept around
 	// - block pruning in archive mode: The block's body is kept around
-	let is_archive_node = state_pruning.as_ref().map(|sp| sp.is_archive()).unwrap_or(false) &&
-		blocks_pruning.is_archive();
+	let is_archive_node = state_pruning.as_ref().map(|sp| sp.is_archive()).unwrap_or(false)
+		&& blocks_pruning.is_archive();
 	let genesis_hash = client.hash(Zero::zero()).ok().flatten().expect("Genesis block exists; qed");
 	if is_archive_node {
 		let archive_v2 = sc_rpc_spec_v2::archive::Archive::new(
@@ -1058,8 +1072,8 @@ where
 			&mut net_config,
 			network_service_provider.handle(),
 			Arc::clone(&client),
-			config.network.default_peers_set.in_peers as usize +
-				config.network.default_peers_set.out_peers as usize,
+			config.network.default_peers_set.in_peers as usize
+				+ config.network.default_peers_set.out_peers as usize,
 			&spawn_handle,
 		),
 	};
@@ -1263,6 +1277,7 @@ where
 		network.clone(),
 		sync_service.clone(),
 		Arc::new(TransactionPoolAdapter { pool: transaction_pool, client: client.clone() }),
+		role.is_authority(),
 		metrics_registry,
 	)?;
 	spawn_handle.spawn_blocking(
@@ -1504,8 +1519,8 @@ where
 	let genesis_hash = client.info().genesis_hash;
 
 	let (state_request_protocol_config, state_request_protocol_name) = {
-		let num_peer_hint = net_config.network_config.default_peers_set_num_full as usize +
-			net_config.network_config.default_peers_set.reserved_nodes.len();
+		let num_peer_hint = net_config.network_config.default_peers_set_num_full as usize
+			+ net_config.network_config.default_peers_set.reserved_nodes.len();
 		// Allow both outgoing and incoming requests.
 		let (handler, protocol_config) =
 			StateRequestHandler::new::<Net>(&protocol_id, fork_id, client.clone(), num_peer_hint);

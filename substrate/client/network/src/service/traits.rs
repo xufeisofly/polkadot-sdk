@@ -472,6 +472,11 @@ pub trait NetworkPeers {
 	///
 	/// Returns an error if the `NetworkWorker` is no longer running.
 	async fn reserved_peers(&self) -> Result<Vec<PeerId>, ()>;
+
+	/// Get the list of reserved peers for `protocol`.
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running or if `protocol` is unknown.
+	async fn protocol_reserved_peers(&self, protocol: ProtocolName) -> Result<Vec<PeerId>, ()>;
 }
 
 // Manual implementation to avoid extra boxing here
@@ -561,6 +566,17 @@ where
 		Self: 'async_trait,
 	{
 		T::reserved_peers(self)
+	}
+
+	fn protocol_reserved_peers<'life0, 'async_trait>(
+		&'life0 self,
+		protocol: ProtocolName,
+	) -> Pin<Box<dyn Future<Output = Result<Vec<PeerId>, ()>> + Send + 'async_trait>>
+	where
+		'life0: 'async_trait,
+		Self: 'async_trait,
+	{
+		T::protocol_reserved_peers(self, protocol)
 	}
 }
 

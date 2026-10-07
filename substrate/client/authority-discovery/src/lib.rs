@@ -187,4 +187,6 @@ pub(crate) enum ServicetoWorkerMsg {
 	GetAddressesByAuthorityId(AuthorityId, oneshot::Sender<Option<HashSet<Multiaddr>>>),
 	/// See [`Service::get_authority_ids_by_peer_id`].
 	GetAuthorityIdsByPeerId(PeerId, oneshot::Sender<Option<HashSet<AuthorityId>>>),
+	/// Manually trigger publishing of our own addresses on the DHT.
+	PublishExtAddresses(bool, oneshot::Sender<bool>),
 }

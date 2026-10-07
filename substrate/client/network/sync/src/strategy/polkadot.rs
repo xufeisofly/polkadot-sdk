@@ -275,9 +275,9 @@ where
 	}
 
 	fn is_major_syncing(&self) -> bool {
-		self.warp.is_some() ||
-			self.state.is_some() ||
-			match self.chain_sync {
+		self.warp.is_some()
+			|| self.state.is_some()
+			|| match self.chain_sync {
 				Some(ref s) => s.status().state.is_major_syncing(),
 				None => unreachable!("At least one syncing strategy is active; qed"),
 			}
@@ -426,6 +426,7 @@ where
 
 					self.warp = None;
 					self.state = Some(state_sync);
+
 					Ok(())
 				},
 				None => {
@@ -464,6 +465,7 @@ where
 			} else {
 				error!(target: LOG_TARGET, "State sync failed. Falling back to full sync.");
 			}
+
 			let chain_sync = match ChainSync::new(
 				chain_sync_mode(self.config.mode),
 				self.client.clone(),

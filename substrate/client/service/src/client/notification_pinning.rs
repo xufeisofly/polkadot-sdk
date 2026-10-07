@@ -36,7 +36,7 @@ use schnellru::Limiter;
 use sp_runtime::traits::Block as BlockT;
 
 const LOG_TARGET: &str = "db::notification_pinning";
-const NOTIFICATION_PINNING_LIMIT: usize = 1024;
+const NOTIFICATION_PINNING_LIMIT: usize = 8192; // Rocky: old value is 1024;
 
 /// A limiter which automatically unpins blocks that leave the data structure.
 #[derive(Clone, Debug)]
