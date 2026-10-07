@@ -28,3 +28,8 @@ sc-network-types = { default-features = true, workspace = true }
 sc-utils = { default-features = true, workspace = true }
 sp-consensus = { default-features = true, workspace = true }
 sp-runtime = { default-features = true, workspace = true }
+
+[features]
+default = []
+txpool-auth-propagate-timeout-disable = []
+txpool-async-propagate = []
